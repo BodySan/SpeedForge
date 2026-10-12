@@ -16,7 +16,8 @@ internal static class CatalogAudit
             var coordinator = new RunCoordinator(new TrustedTools(), new RunStore(Path.Combine(directory, server.Id)));
             var options = new TestOptions(DurationSeconds: 3, ParallelStreams: 1, MeasureLatency: false,
                 Transport: udp || server.Engine == EngineKind.Iperf2 ? TransportKind.Udp : TransportKind.Tcp,
-                BandwidthLimitBitsPerSecond: 10_000_000, TimeoutSeconds: 12);
+                BandwidthLimitBitsPerSecond: 10_000_000,
+                TimeoutSeconds: 12 + Math.Max(0, Math.Min(16, server.Ports.Distinct().Count()) - 1) * 3);
             // HTTP profiles without an upload endpoint cannot exercise that direction.
             var results = await DirectionalTest.RunAsync(server, options, true,
                 next => coordinator.RunAsync(server, next, null, null, ct), ct);

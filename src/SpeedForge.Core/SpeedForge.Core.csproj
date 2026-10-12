@@ -12,6 +12,8 @@
     <EmbeddedResource Include="Bundled/iperf3-hashes.json" />
     <EmbeddedResource Include="Bundled/iperf2.zip" />
     <EmbeddedResource Include="Bundled/iperf2-hashes.json" />
+    <EmbeddedResource Include="Bundled/iperf2-legacy.zip" />
+    <EmbeddedResource Include="Bundled/iperf2-legacy-hashes.json" />
     <EmbeddedResource Include="..\..\third-party\**\*" Exclude="..\..\third-party\source\extracted\**\*">
       <LogicalName>SpeedForge.Licenses.%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>

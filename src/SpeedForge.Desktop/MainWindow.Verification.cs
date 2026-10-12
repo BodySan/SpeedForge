@@ -140,9 +140,9 @@ public partial class MainWindow
             Require(_session.Where(x => x.Engine == EngineKind.Http).All(x => x.Transport == TransportKind.Tcp), "HTTP унаследовал UDP");
             CompareCombo.ItemsSource = _servers;
         });
-        await Test("Версия 1.0 и многоразмерная иконка встроены в exe", () =>
+        await Test("Версия 1.0.1 и многоразмерная иконка встроены в exe", () =>
         {
-            Require(typeof(MainWindow).Assembly.GetName().Version == new Version(1,0,0,0), "Неверная версия assembly");
+            Require(typeof(MainWindow).Assembly.GetName().Version == new Version(1,0,1,0), "Неверная версия assembly");
             Require(Icon != null && Title.Contains("1.0", StringComparison.Ordinal), "Нет иконки или версии в окне");
             var resource = Application.GetResourceStream(new Uri("pack://application:,,,/Assets/SpeedForge.ico"));
             using var stream = resource.Stream;
@@ -176,13 +176,45 @@ public partial class MainWindow
         });
         await Test("Билайн: одна кнопка проходит 8 профилей и проверяет reverse", async () =>
         {
-            var server = _servers.Single(x => x.Id == "beeline-iperf2") with { Host = "127.0.0.1", Port = 55210, Ports = [55210] };
+            var server = _servers.Single(x => x.Id == "beeline-iperf2") with { Host = "127.0.0.1", Port = 55214, Ports = [55214] };
             Configure(server);
             Require(Iperf2ProfilesCheck.Visibility == Visibility.Visible && !ParallelBox.IsEnabled, "Профили не включились автоматически");
             await Click();
-            Require(_session.Count == 9 && _session.All(x => x.Status == RunStatus.Measured), "Не пройдены все профили");
+            Require(_session.Count == 9 && _session.Take(8).All(x => x.Status == RunStatus.Measured
+                && x.EngineSha256 == BundledIperf.Iperf2LegacySha256) && _session[^1].Status == RunStatus.Timeout, "Не пройдены все профили совместимым клиентом");
             Require(double.Parse(UploadValue.Text) == Math.Round(_session.Take(8).Max(x => x.ReceiverMbps)!.Value,1), "Итог не использует лучший приёмный результат");
             SavePreview(Path.Combine(directory, "beeline-profiles.png"));
+        });
+        await Test("История iPerf2: профиль, направление и причина вместо одинакового Partial", async () =>
+        {
+            Configure(ServerCatalog.Custom("127.0.0.1", 55208, EngineKind.Iperf2), false);
+            DirectionCombo.SelectedIndex = 1; RateBox.Text = "1";
+            await Click();
+            Require(_lastResult!.Status == RunStatus.Partial && _lastResult.StatusLabel == "Нет отчёта сервера"
+                && UploadValue.Text == "—" && _chart.Count == 0, "Показана скорость отправителя без ACK");
+            Navigate(1); await Task.Delay(150); UpdateLayout();
+            var bindings = HistoryList.Columns.OfType<DataGridTextColumn>().Select(x => (x.Binding as System.Windows.Data.Binding)?.Path.Path).ToArray();
+            Require(bindings.Contains(nameof(RunResult.ProfileLabel)) && bindings.Contains(nameof(RunResult.DirectionLabel))
+                && bindings.Contains(nameof(RunResult.StatusLabel)), "История не различает профили и статусы");
+            Require(HistoryList.Columns.All(x => x.ActualWidth >= 40)
+                && HistoryList.Columns.Sum(x => x.ActualWidth) <= HistoryList.ActualWidth + 1,
+                "Столбцы истории скрыты или выходят за ширину таблицы");
+            await File.WriteAllTextAsync(Path.Combine(directory, "history-layout.json"), JsonSerializer.Serialize(new
+                { Width = HistoryList.ActualWidth, Columns = HistoryList.Columns.Select(x => new { x.Header, x.ActualWidth }) }, VerificationJson));
+            SavePreview(Path.Combine(directory, "history-no-ack.png"));
+        });
+        await Test("Билайн: ручная загрузка не меняет непроверенную карточку отдачи", async () =>
+        {
+            var server = _servers.Single(x => x.Id == "beeline-iperf2") with { Host = "127.0.0.1", Port = 55210, Ports = [55210] };
+            Configure(server, false);
+            Iperf2ProfilesCheck.IsChecked = false;
+            ParallelBox.Text = "4";
+            Iperf2ProfilesCheck.IsChecked = true;
+            Require(ParallelBox.Text == "1" && !ParallelBox.IsEnabled, "Ручная загрузка наследует скрытые четыре потока");
+            DirectionCombo.SelectedIndex = 0;
+            await Click();
+            Require(_session.Count == 1 && _session[0].Direction == TestDirection.Download && _session[0].Status == RunStatus.Measured
+                && UploadValue.Text == "—" && UploadStatus.Text == "Не проверено", "Отдача отмечена неуспешной без запуска");
         });
         await Test("Смена сервера очищает прежние скорости и график", () =>
         {

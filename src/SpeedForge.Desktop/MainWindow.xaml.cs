@@ -49,7 +49,7 @@ public partial class MainWindow : Window
         CompareCombo.ItemsSource = _servers;
         CompareCombo.SelectedItem = _servers.First(x => x.Id == "selectel-https");
         CatalogGrid.ItemsSource = _servers;
-        CatalogCount.Text = $"{_servers.Count} серверов · 1.0";
+        CatalogCount.Text = $"{_servers.Count} серверов · {typeof(MainWindow).Assembly.GetName().Version?.ToString(3)}";
         RefreshHistory();
         Navigate(0);
     }
@@ -61,12 +61,14 @@ public partial class MainWindow : Window
         int.TryParse(box.Text.Trim(), out var n) ? n : throw new InvalidDataException("Неверное число: " + label);
     private TestOptions ReadOptions(TestDirection? direction = null)
     {
+        var server = CurrentServer();
+        int additionalPorts = Math.Max(0, Math.Min(16, server.Ports.Distinct().Count()) - 1);
         var options = new TestOptions(direction ?? Choice<TestDirection>(DirectionCombo),
             Choice<TransportKind>(TransportCombo), Choice<IpFamily>(FamilyCombo),
             Number(DurationBox, "длительность"), Number(ParallelBox, "потоки"), 1,
             checked((long)Number(RateBox, "лимит скорости") * 1_000_000),
             LatencyCheck.IsChecked == true, PrivateCheck.IsChecked == true, ExpertCheck.IsChecked == true,
-            Number(DurationBox, "длительность") + 12 + (LatencyCheck.IsChecked == true ? 4 : 0),
+            Number(DurationBox, "длительность") + 12 + additionalPorts * 3 + (LatencyCheck.IsChecked == true ? 4 : 0),
             UseIperf2Profiles: Iperf2ProfilesCheck.IsChecked == true);
         options.Validate();
         return options;
@@ -149,7 +151,8 @@ public partial class MainWindow : Window
         Iperf2ProfilesCheck.Visibility = server.Iperf2Profiles.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         bool archiveProfiles = server.Iperf2Profiles.Length > 0 && Iperf2ProfilesCheck.IsChecked == true;
         ParallelBox.IsEnabled = !archiveProfiles;
-        if (newProfile && server.Iperf2Profiles.Length > 0) DurationBox.Text = "10";
+        if (archiveProfiles) ParallelBox.Text = "1";
+        if (newProfile && server.Iperf2Profiles.Length > 0) DurationBox.Text = "3";
         if (newProfile && server.Engine == EngineKind.Iperf3)
             TransportCombo.SelectedIndex = _iperf3Transport == TransportKind.Udp ? 1 : 0;
         bool upload = !http || server.Http == null || server.Http.UploadUrl != null;
@@ -188,10 +191,10 @@ public partial class MainWindow : Window
         {
             var server = CurrentServer();
             if (server.Iperf2Profiles.Length > 0 && Iperf2ProfilesCheck.IsChecked == true)
-                RateSummary.Text += "\nБилайн: 8 профилей · итог по приёму сервером";
+                RateSummary.Text += $"\nБилайн: 8 профилей по {DurationBox.Text.Trim()} с · для полного прогона из архива укажите 10 с";
             if (valid && rate == 0 && server.Engine == EngineKind.Iperf2
                 && (BothCheck.IsChecked == true || Choice<TestDirection>(DirectionCombo) == TestDirection.Download))
-                RateSummary.Text += "\nОбратный iPerf2: запрос 100 Гбит/с на поток";
+                RateSummary.Text += "\nОбратная передача проверяется отдельно";
         }
         catch (Exception ex) when (ex is InvalidDataException or ArgumentException) { }
         ClearRateButton.IsEnabled = _running == null && RateBox.Text.Trim() != "0";
@@ -250,7 +253,7 @@ public partial class MainWindow : Window
         int generation = _displayGeneration;
         double chartOffset = _chartOffset;
         if (options.Iperf2OfferedBitsPerSecondPerStream > 0)
-            ServerDetail.Text = $"Билайн · профиль {_session.Count(x => x.ProfileId == server.Id && x.Direction == TestDirection.Upload) + 1}/{server.Iperf2Profiles.Length} · {options.ParallelStreams} потоков × {options.Iperf2OfferedBitsPerSecondPerStream / 1_000_000} Мбит/с нагрузки";
+            ServerDetail.Text = $"Билайн · {_session.Count(x => x.ProfileId == server.Id && x.Direction == TestDirection.Upload) + 1}/{server.Iperf2Profiles.Length} · профиль {options.ParallelStreams}({options.Iperf2OfferedBitsPerSecondPerStream / 1_000_000})";
         PhaseTitle.Text = options.Direction == TestDirection.Download ? "Измеряем загрузку…" : "Измеряем отдачу…";
         if (options.Direction == TestDirection.Download) DownloadStatus.Text = "Измеряем…";
         else UploadStatus.Text = "Измеряем…";
@@ -265,7 +268,22 @@ public partial class MainWindow : Window
         });
         var progress = new Progress<string>(message => { Log(message); PhaseTitle.Text = message; });
         Log($"{server.Group}, {server.City}, {options.Direction}, {options.ParallelStreams} потоков, {options.DurationSeconds} с");
-        var result = await _coordinator.RunAsync(server, options, SessionKey.Password, progress, _running!.Token, live);
+        var watch = Stopwatch.StartNew();
+        string activity = options.Iperf2OfferedBitsPerSecondPerStream > 0
+            ? $"профиль {options.ParallelStreams}({options.Iperf2OfferedBitsPerSecondPerStream / 1_000_000})"
+            : options.Direction == TestDirection.Download ? "загрузка на ПК" : "отдача с ПК";
+        var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        timer.Tick += (_, _) =>
+        {
+            if (server.Engine == EngineKind.Iperf2)
+                TimeInfo.Text = $"{watch.Elapsed.TotalSeconds:F0} с · {activity}" +
+                    (watch.Elapsed.TotalSeconds > options.DurationSeconds + (options.MeasureLatency && options.MeasureLatencyBefore ? 2 : 0)
+                        ? " · ждём отчёт сервера" : " · проверяем передачу");
+        };
+        timer.Start();
+        RunResult result;
+        try { result = await _coordinator.RunAsync(server, options, SessionKey.Password, progress, _running!.Token, live); }
+        finally { timer.Stop(); }
         _displayGeneration++;
         _lastResult = result;
         _session.Add(result);
@@ -277,7 +295,8 @@ public partial class MainWindow : Window
         }
         bool unconfirmedIperf2 = server.Engine == EngineKind.Iperf2 && result.ReceiverBytes == null;
         if (unconfirmedIperf2 && options.Direction == TestDirection.Upload) UploadValue.Text = "—";
-        if (server.Engine == EngineKind.Iperf2 && options.Direction == TestDirection.Upload && result.ReceiverMbps is { } received)
+        if (server.Engine != EngineKind.Http && options.Transport == TransportKind.Udp
+            && options.Direction == TestDirection.Upload && result.ReceiverMbps is { } received)
         {
             _chart.Add(new(options.Direction, _chartOffset + options.DurationSeconds, received, result.ReceiverBytes ?? 0));
             RenderChart();
@@ -295,9 +314,10 @@ public partial class MainWindow : Window
         if (options.Direction is TestDirection.Download or TestDirection.Bidirectional) DownloadStatus.Text = directionStatus;
         if (options.Direction is TestDirection.Upload or TestDirection.Bidirectional) UploadStatus.Text = directionStatus;
         var rtts = result.Latency.Where(x => x.Phase == ProbePhase.Idle && x.RttMilliseconds.HasValue).Select(x => x.RttMilliseconds!.Value).Order().ToArray();
-        PingValue.Text = rtts.Length > 0 ? rtts[rtts.Length / 2].ToString("F0") : "—";
+        if (rtts.Length > 0) PingValue.Text = rtts[rtts.Length / 2].ToString("F0");
         _chartOffset += options.DurationSeconds;
         PhaseTitle.Text = StatusText(result.Status);
+        TimeInfo.Text = $"{watch.Elapsed.TotalSeconds:F1} с · {result.StatusLabel}";
         SummaryText.Text = $"{server.Group} · {server.City} · {server.MethodLabel} · {StatusText(result.Status)}";
         if (result.Status is not (RunStatus.Measured or RunStatus.Cancelled))
         {
@@ -330,8 +350,9 @@ public partial class MainWindow : Window
     private void ApplySessionSummary(ServerEntry server)
     {
         var observation = DirectionObservation.From(_session);
-        if (server.Engine == EngineKind.Iperf2 && server.Iperf2Profiles.Length > 0)
+        if (server.Engine == EngineKind.Iperf2 && server.Iperf2Profiles.Length > 0 && _session.Any(x => x.Direction == TestDirection.Upload))
         {
+            ServerDetail.Text = $"{server.Group} · {server.Host} · {_session.Count(x => x.Direction == TestDirection.Upload)} профилей";
             var uploads = _session.Where(x => x.Direction == TestDirection.Upload && DirectionObservation.Confirmed(x)).ToArray();
             UploadValue.Text = uploads.Length > 0 ? uploads.Max(x => x.UploadMbps)!.Value.ToString("F1") : "—";
             UploadStatus.Text = uploads.Length > 0 ? $"Приём сервером · {uploads.Length} профилей подтверждено"
@@ -365,7 +386,9 @@ public partial class MainWindow : Window
         if (_running!.IsCancellationRequested) return;
         var transport = second.Engine == EngineKind.Http ? TransportKind.Tcp : second.Engine == EngineKind.Iperf2 ? TransportKind.Udp
             : first.Engine == EngineKind.Iperf3 ? options.Transport : TransportKind.Tcp;
-        var b = await DirectionalTest.RunAsync(second, options with { Transport = transport }, automatic,
+        int secondDeadline = options.DurationSeconds + 12 + (options.MeasureLatency ? 4 : 0)
+            + Math.Max(0, Math.Min(16, second.Ports.Distinct().Count()) - 1) * 3;
+        var b = await DirectionalTest.RunAsync(second, options with { Transport = transport, TimeoutSeconds = secondDeadline }, automatic,
             next => RunSingle(second, next), _running.Token);
         PhaseTitle.Text = "Сравнение завершено";
         SummaryText.Text = $"{first.Group}: {DirectionObservation.From(a).Description} · {second.Group}: {DirectionObservation.From(b).Description}";
@@ -593,10 +616,12 @@ public partial class MainWindow : Window
         if (probe) serverId = serverId[6..];
         SelectServer(_servers.First(x => x.Id == serverId));
         DurationBox.Text = "3"; ParallelBox.Text = "1"; LatencyCheck.IsChecked = false;
-        if (!rateSwitches && _servers.First(x => x.Id == serverId).Engine == EngineKind.Iperf2) RateBox.Text = "1";
+        bool beeline = serverId == "beeline-iperf2";
+        if (beeline) { RateBox.Text = "0"; LatencyCheck.IsChecked = true; }
+        else if (!rateSwitches && _servers.First(x => x.Id == serverId).Engine == EngineKind.Iperf2) RateBox.Text = "1";
         if (rateSwitches && ReadOptions().BandwidthLimitBitsPerSecond != 0)
             throw new InvalidOperationException("После переключения метода появился скрытый лимит");
-        BothCheck.IsChecked = _servers.First(x => x.Id == serverId).Http?.UploadUrl != null
+        BothCheck.IsChecked = beeline || _servers.First(x => x.Id == serverId).Http?.UploadUrl != null
             || rateSwitches && _servers.First(x => x.Id == serverId).Engine == EngineKind.Iperf3;
         SavePreview(System.IO.Path.Combine(directory, "before.png"));
         Task run;
@@ -629,7 +654,9 @@ public partial class MainWindow : Window
         Navigate(0);
         if (probe) return _session.Count == 2 && _session.Select(x => x.Direction).Distinct().Count() == 2
             && _session.All(x => x.DebugDirectory != null && File.Exists(System.IO.Path.Combine(x.DebugDirectory, "trace.json"))) && RunButton.IsEnabled;
-        if (serverId == "beeline-iperf2") return _lastResult?.EngineSha256 == BundledIperf.Iperf2Sha256 && _lastResult.Status is RunStatus.Measured or RunStatus.Partial && RunButton.IsEnabled;
+        if (beeline) return _session.Count == 9 && _session.Take(8).All(x => x.EngineSha256 is BundledIperf.Iperf2LegacySha256 or BundledIperf.Iperf2Sha256)
+            && _session[^1].EngineSha256 == BundledIperf.Iperf2Sha256 && RunButton.IsEnabled
+            && _session.All(x => x.ReceiverMbps != null || x.Mbps == null && x.UploadMbps == null && x.DownloadMbps == null);
         return _lastResult?.Status == (cancellation ? RunStatus.Cancelled : RunStatus.Measured)
             && (cancellation || DownloadValue.Text != "—") && RunButton.IsEnabled && HistoryList.Items.Count > 0;
     }

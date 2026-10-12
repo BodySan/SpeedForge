@@ -1,7 +1,7 @@
 {
-  "checked_at_utc": "2026-10-12T16:08:26.513839+00:00",
+  "checked_at_utc": "2026-10-12T19:19:26.540994+00:00",
   "scope": "Static structure only, not build/test execution",
-  "source_count": 33,
+  "source_count": 35,
   "checks": 25,
   "passed": 25,
   "failed": 0,
@@ -9,7 +9,7 @@
     {
       "name": "C# source files",
       "pass_check": true,
-      "detail": "33"
+      "detail": "35"
     },
     {
       "name": "XML src\\SpeedForge.Desktop\\App.xaml",

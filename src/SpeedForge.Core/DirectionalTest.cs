@@ -36,27 +36,38 @@ public static class DirectionalTest
         if (server.Engine == EngineKind.Iperf2 && server.Iperf2Profiles.Length > 0 && options.UseIperf2Profiles
             && (automatic || options.Direction == TestDirection.Upload))
         {
-            foreach (var profile in server.Iperf2Profiles)
+            for (int index = 0; index < server.Iperf2Profiles.Length; index++)
             {
                 if (ct.IsCancellationRequested) return results;
+                var profile = server.Iperf2Profiles[index];
                 var next = options with { Direction = TestDirection.Upload, Transport = TransportKind.Udp,
-                    ParallelStreams = profile.Streams, Iperf2OfferedBitsPerSecondPerStream = profile.BitsPerSecondPerStream };
+                    ParallelStreams = profile.Streams, Iperf2OfferedBitsPerSecondPerStream = profile.BitsPerSecondPerStream,
+                    MeasureLatencyBefore = index == 0 && options.MeasureLatencyBefore,
+                    MeasureLatencyAfter = !automatic && index == server.Iperf2Profiles.Length - 1 && options.MeasureLatencyAfter,
+                    ProbeIperf2Client = index == 0 && server.Iperf2Legacy,
+                    TimeoutSeconds = index == 0 && server.Iperf2Legacy ? Math.Min(120, Math.Max(options.TimeoutSeconds ?? 45,
+                        options.DurationSeconds * 2 + 15 + (options.MeasureLatency ? 4 : 0))) : options.TimeoutSeconds };
                 next.Validate();
                 results.Add(await measure(next));
                 if (ct.IsCancellationRequested) return results;
-                await Task.Delay(350, ct);
+                if (index < server.Iperf2Profiles.Length - 1 || automatic) await Task.Delay(350, ct);
             }
             // The supplied archive contains upload profiles. Probe reverse separately with one stream.
             if (automatic && !ct.IsCancellationRequested)
                 results.Add(await measure(options with { Direction = TestDirection.Download, ParallelStreams = 1,
-                    Iperf2OfferedBitsPerSecondPerStream = 0 }));
+                    Iperf2OfferedBitsPerSecondPerStream = 0, MeasureLatencyBefore = false }));
             return results;
         }
         var plan = Plan(server, options, automatic);
         for (int index = 0; index < plan.Length; index++)
         {
             if (ct.IsCancellationRequested) break;
-            results.Add(await measure(options with { Direction = plan[index] }));
+            results.Add(await measure(options with { Direction = plan[index],
+                MeasureLatencyBefore = index == 0 && options.MeasureLatencyBefore,
+                MeasureLatencyAfter = index == plan.Length - 1 && options.MeasureLatencyAfter,
+                ProbeIperf2Client = server.Iperf2Legacy && plan[index] == TestDirection.Upload,
+                TimeoutSeconds = server.Iperf2Legacy && plan[index] == TestDirection.Upload ? Math.Min(120,
+                    Math.Max(options.TimeoutSeconds ?? 45, options.DurationSeconds * 2 + 15 + (options.MeasureLatency ? 4 : 0))) : options.TimeoutSeconds }));
             if (ct.IsCancellationRequested) break;
             // Give public single-client servers time to finish their previous session.
             if (index < plan.Length - 1) await Task.Delay(350, ct);

@@ -1,15 +1,27 @@
-# Development
+# Работа с исходниками
 
-Use Windows x64 and .NET SDK 10. Build the portable application with `./build-windows.ps1`.
+Проект собирается на Windows x64 с .NET SDK 10. Команда `./build-windows.ps1` собирает приложение, запускает автономные проверки и создаёт переносимый exe в `publish/win-x64`.
 
-Run `./tests/run-sandbox.ps1 -NoBuild` after changing measurements or UI. This starts actual HTTP/iPerf servers on loopback, executes parser and measurement regressions, simulates directed failures, and checks the published executable. The script stops only the processes it started. Results are saved in `sandbox-output` and excluded from Git.
+После изменения измерений или интерфейса запустите `./tests/run-sandbox.ps1 -NoBuild`. Скрипт поднимает локальные серверы, проверяет реальные сетевые передачи и опубликованный exe. Он останавливает только собственные процессы. Результаты попадают в `sandbox-output`, который исключён из Git.
 
-Public server audits are opt-in: `--audit-catalog <directory>` and `--audit-catalog <directory> --udp`. Do not make the regular test suite depend on a public server being available.
+Обычный набор не зависит от доступности публичных серверов. Их можно проверить отдельно:
 
-`--audit-beeline <directory>` checks the eight supplied load profiles and reverse against `speedcheck.gldn.net`, using three seconds and a total 10 Mbit/s cap. It records missing ACKs as unconfirmed rather than reporting the sender's offered load as measured throughput.
+```powershell
+dotnet run --project tests/SpeedForge.SelfTests -c Release -- --audit-catalog ./catalog-results
+dotnet run --project tests/SpeedForge.SelfTests -c Release -- --audit-catalog ./catalog-udp-results --udp
+dotnet run --project tests/SpeedForge.SelfTests -c Release -- --audit-beeline ./beeline-results
+```
 
-`python static_audit.py` checks XML, resources, catalog integrity, event handlers, and basic source structure. It uses only the Python standard library and does not replace compilation or runtime tests.
+Эти команды используют короткие передачи с общим лимитом 10 Мбит/с. Они проверяют наличие данных и поддерживаемые направления, а не максимальную скорость подключения. Перебор нескольких портов получает дополнительное время; подтверждённый порт используется первым в следующем направлении.
 
-The icon source is `assets/SpeedForge.svg`. On Windows, run `./assets/build-icon.ps1` to regenerate the PNG and the ICO with ten sizes. Keep the vector and rendering geometry consistent and inspect `assets/Icon-preview.png` at 16–256 pixels.
+Для профилей Билайна параметр `--archive-rates` сохраняет исходные скорости и 10 секунд из bat-файлов. `--local` меняет цель на локальный UDP-шлюз песочницы `127.0.0.1:55214`; все его серверы должны быть предварительно запущены. `--latency` включает измерение задержки вокруг общего прогона. Не используйте `--archive-rates` для публичного сервера без намерения провести нагрузочный тест.
 
-Original SpeedForge code and artwork are MIT licensed. Keep third-party license notices and source archives intact. Do not commit personal diagnostics, credentials, private keys, or local trusted-tool settings.
+Для полного локального прогона исходных команд можно использовать `./tests/run-sandbox.ps1 -NoBuild -ArchiveProfilesOnly`.
+
+`--parse-console <каталог>` проверяет разбор сохранённых консольных прогонов по их `console-results.json` и исходным stdout. Он помогает сравнить отчёты разных версий iPerf2 с результатом приложения.
+
+`python static_audit.py` дополнительно проверяет XML, каталог и связи обработчиков интерфейса. Проверка структуры не заменяет сборку и запуск тестов.
+
+Иконка хранится в `assets/SpeedForge.svg`. Команда `./assets/build-icon.ps1` создаёт PNG и ICO; результат можно посмотреть в `assets/Icon-preview.png`.
+
+Сохраняйте лицензии сторонних компонентов. Личные журналы, пароли, ключи и настройки доверенных exe не должны попадать в репозиторий.

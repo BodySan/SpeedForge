@@ -24,6 +24,7 @@ public sealed record ServerEntry(
     public int[] Ports { get; init; } = [];
     public HttpProfile? Http { get; init; }
     public Iperf2LoadProfile[] Iperf2Profiles { get; init; } = [];
+    public bool Iperf2Legacy { get; init; }
     public string MethodLabel => Engine == EngineKind.Http ? (Http?.DownloadUrl.StartsWith("https:") == true ? "HTTPS" : "HTTP") : Engine.ToString();
     public string Observed => PublishedObservations.Describe(Id, Engine == EngineKind.Iperf2 ? TransportKind.Udp : TransportKind.Tcp);
 }
@@ -45,7 +46,10 @@ public sealed record TestOptions(
     bool AllowUnqualifiedDirection = false,
     int? TimeoutSeconds = null,
     long Iperf2OfferedBitsPerSecondPerStream = 0,
-    bool UseIperf2Profiles = true)
+    bool UseIperf2Profiles = true,
+    bool MeasureLatencyBefore = true,
+    bool MeasureLatencyAfter = true,
+    bool ProbeIperf2Client = false)
 {
     public void Validate()
     {
@@ -98,6 +102,7 @@ public sealed class RunResult
     public long? ReceiverBytes { get; set; }
     public double? SenderMbps { get; set; }
     public double? ReceiverMbps { get; set; }
+    public int? ReceiverStreams { get; set; }
     public double? Mbps { get; set; }
     public double? UploadMbps { get; set; }
     public double? DownloadMbps { get; set; }
@@ -116,6 +121,38 @@ public sealed class RunResult
     public List<LatencySample> Latency { get; set; } = [];
     public List<string> Limitations { get; set; } = [];
     public string? DebugDirectory { get; set; }
+    [JsonIgnore]
+    public string DirectionLabel => Direction switch { TestDirection.Download => "↓ На ПК", TestDirection.Upload => "↑ С ПК", _ => "↕ Оба" };
+    [JsonIgnore]
+    public string ProfileLabel => Options.Iperf2OfferedBitsPerSecondPerStream > 0
+        ? $"{Options.ParallelStreams}({Options.Iperf2OfferedBitsPerSecondPerStream / 1_000_000})"
+        : $"{Transport} · {Options.ParallelStreams} поток(а)";
+    [JsonIgnore]
+    public string ProfileDescription => $"{ProfileLabel} · {Options.DurationSeconds} с нагрузки" +
+        (Options.BandwidthLimitBitsPerSecond > 0 ? $" · общий лимит {Options.BandwidthLimitBitsPerSecond / 1_000_000} Мбит/с" : "") +
+        (Options.Iperf2OfferedBitsPerSecondPerStream > 0 ? $"\n{Options.ParallelStreams} поток(а), по {Options.Iperf2OfferedBitsPerSecondPerStream / 1_000_000} Мбит/с заданной нагрузки на поток.\nИзмеренная скорость — в столбце ↑; нагрузка не определяет тариф." : "");
+    [JsonIgnore]
+    public string ServerLabel => $"{Group} · {City}";
+    [JsonIgnore]
+    public string StatusLabel => ErrorCode switch
+    {
+        "IPERF2_RECEIVER_UNCONFIRMED" => "Нет отчёта сервера",
+        "IPERF2_RECEIVER_REPORT_INVALID" => "Неверный отчёт сервера",
+        "IPERF2_MISSING_STREAM_REPORTS" => "Неполный отчёт сервера",
+        "IPERF2_REVERSE_NO_DATA" => "Нет обратной передачи",
+        "IPERF2_REVERSE_UNAVAILABLE" => "Обратный режим недоступен",
+        _ => Status switch
+        {
+            RunStatus.Measured => "Измерено", RunStatus.Partial => "Частичные данные",
+            RunStatus.Cancelled => "Остановлено", RunStatus.Timeout => "Нет ответа вовремя",
+            RunStatus.ServerBusy => "Сервер занят", RunStatus.NetworkError => "Ошибка соединения",
+            RunStatus.Unsupported => "Режим недоступен", RunStatus.NoData => "Нет данных",
+            RunStatus.InsufficientData => "Нет полного результата", _ => "Ошибка измерителя"
+        }
+    };
+    [JsonIgnore]
+    public string StatusDescription => string.Join("\n", new[] { StatusLabel, ErrorText, MetricOrigin }
+        .Where(x => !string.IsNullOrWhiteSpace(x)));
     [JsonIgnore]
     public RunDiagnostics? Diagnostics { get; set; }
 }

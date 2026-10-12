@@ -17,7 +17,9 @@ internal static class SandboxInfrastructure
         Console.CancelKeyPress += (_, e) => { e.Cancel = true; stop.Cancel(); };
         var listeners = new[] { (55203, "download"), (55204, "upload"), (55205, "all") };
         var tasks = listeners.Select(x => ProxyAsync(x.Item1, x.Item2, stop.Token)).Append(BlackholeAsync(stop.Token))
-            .Append(UdpRelayAsync(55209, true, stop.Token)).Append(UdpRelayAsync(55210, false, stop.Token))
+            .Append(UdpRelayAsync(55209, 100_000_000, stop.Token)).Append(UdpRelayAsync(55210, 0, stop.Token))
+            .Append(UdpRelayAsync(55212, 40_000_000, stop.Token)).Append(UdpRelayAsync(55213, 300_000_000, stop.Token))
+            .Append(UdpRelayAsync(55214, 0, stop.Token, true)).Append(UdpRelayAsync(55215, 250_000_000, stop.Token, true))
             .Append(UntrustedTlsAsync(stop.Token)).ToArray();
         await File.WriteAllTextAsync(Path.Combine(directory, "ready.txt"), "TCP: 55203 upload-only, 55204 download-only, 55205 denied. UDP: 55208 blackhole. Backend: 55201.");
         Console.WriteLine("Sandbox ready; only 127.0.0.1 listeners, real iPerf traffic, no fabricated speeds.");
@@ -91,58 +93,92 @@ internal static class SandboxInfrastructure
         using var udp = new UdpClient(new IPEndPoint(IPAddress.Loopback, 55208));
         while (!ct.IsCancellationRequested) await udp.ReceiveAsync(ct);
     }
-    private static async Task UdpRelayAsync(int port, bool limited, CancellationToken ct)
+    private static async Task UdpRelayAsync(int port, long limitBitsPerSecond, CancellationToken ct, bool legacy = false)
     {
-        // Actual datagrams reach a native iPerf2 receiver through a 100 Mbit/s token bucket.
+        // Real datagrams cross a token bucket; test capacities vary independently
+        // of the application's requested rate. Zero means no relay rate limit.
         // The server's ACK is relayed unchanged; no speed or loss report is fabricated.
         using var frontend = new UdpClient(new IPEndPoint(IPAddress.Loopback, port));
         IgnoreUdpReset(frontend);
         frontend.Client.ReceiveBufferSize = 2_097_152;
-        var peers = new Dictionary<IPEndPoint, UdpClient>();
+        var peers = new Dictionary<IPEndPoint, UdpPeer>();
         var replies = new List<Task>();
-        double credit = 125_000;
+        int allocated = 0;
+        bool limited = limitBitsPerSecond > 0;
+        double bytesPerSecond = limitBitsPerSecond / 8.0;
+        double burst = bytesPerSecond / 100;
+        double credit = burst;
         long previous = Stopwatch.GetTimestamp();
         try
         {
             while (!ct.IsCancellationRequested)
             {
                 var packet = await frontend.ReceiveAsync(ct);
-                if (!peers.TryGetValue(packet.RemoteEndPoint, out var backend))
+                bool finish = packet.Buffer.Length >= 4 && BinaryPrimitives.ReadInt32BigEndian(packet.Buffer.AsSpan(0, 4)) < 0;
+                if (peers.TryGetValue(packet.RemoteEndPoint, out var previousPeer) && (previousPeer.Closed || previousPeer.FinalAck && !finish))
+                {
+                    if (finish) continue;
+                    peers.Remove(packet.RemoteEndPoint);
+                }
+                if (!peers.TryGetValue(packet.RemoteEndPoint, out var peer))
                 {
                     // Windows UDP socket reuse routes simultaneous peers to only one socket.
                     // Isolate each flow on a native server port while preserving datagrams and ACKs.
-                    backend = new UdpClient(); IgnoreUdpReset(backend);
-                    backend.Connect(IPAddress.Loopback, limited ? 55211 : 55301 + peers.Count % 40);
-                    peers.Add(packet.RemoteEndPoint, backend);
-                    replies.Add(Reply(backend, packet.RemoteEndPoint));
+                    var backend = new UdpClient(); IgnoreUdpReset(backend);
+                    // Modern reverse requests have no legacy data payload. A 2.0.8
+                    // receiver cannot handle them; isolate that unsupported probe.
+                    bool unsupportedControl = legacy && packet.Buffer.Length < 1470;
+                    backend.Connect(IPAddress.Loopback, unsupportedControl ? 55208 : legacy ? limited ? 55481 : 55401 + allocated % 80
+                        : limited ? 55211 : 55301 + allocated % 40);
+                    allocated++;
+                    peer = new UdpPeer(backend);
+                    peers.Add(packet.RemoteEndPoint, peer);
+                    replies.Add(Reply(peer, packet.RemoteEndPoint));
                 }
                 long now = Stopwatch.GetTimestamp();
-                credit = Math.Min(125_000, credit + (now - previous) * 12_500_000.0 / Stopwatch.Frequency);
+                credit = Math.Min(burst, credit + (now - previous) * bytesPerSecond / Stopwatch.Frequency);
                 previous = now;
-                bool finish = packet.Buffer.Length >= 4 && BinaryPrimitives.ReadInt32BigEndian(packet.Buffer.AsSpan(0, 4)) < 0;
                 if (limited && !finish && credit < packet.Buffer.Length) continue;
                 if (limited) credit -= packet.Buffer.Length;
-                await backend.SendAsync(packet.Buffer, ct);
+                try { await peer.Socket.SendAsync(packet.Buffer, ct); }
+                catch (ObjectDisposedException) when (peer.Closed) { }
             }
         }
         finally
         {
-            foreach (var peer in peers.Values) peer.Dispose();
+            foreach (var peer in peers.Values) peer.Socket.Dispose();
             try { await Task.WhenAll(replies); }
             catch (Exception ex) when (ex is OperationCanceledException or SocketException or ObjectDisposedException) { }
         }
-        async Task Reply(UdpClient backend, IPEndPoint client)
+        async Task Reply(UdpPeer peer, IPEndPoint client)
         {
+            using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(ct);
             try
             {
                 while (!ct.IsCancellationRequested)
                 {
-                    var packet = await backend.ReceiveAsync(ct);
+                    var packet = await peer.Socket.ReceiveAsync(lifetime.Token);
                     await frontend.SendAsync(packet.Buffer, client, ct);
+                    if (!peer.FinalAck && packet.Buffer.Length is >= 52 and < 512
+                        && BinaryPrimitives.ReadInt32BigEndian(packet.Buffer.AsSpan(0, 4)) < 0)
+                    {
+                        peer.FinalAck = true;
+                        // Permit native FIN retries, then close the relay's peer
+                        // socket. Keeping it alive made Windows legacy receivers
+                        // retain completed sessions and steal later traffic.
+                        lifetime.CancelAfter(TimeSpan.FromSeconds(3));
+                    }
                 }
             }
             catch (Exception ex) when (ex is OperationCanceledException or SocketException or ObjectDisposedException) { }
+            finally { peer.Closed = true; peer.Socket.Dispose(); }
         }
+    }
+    private sealed class UdpPeer(UdpClient socket)
+    {
+        public UdpClient Socket { get; } = socket;
+        public volatile bool FinalAck;
+        public volatile bool Closed;
     }
     private static void IgnoreUdpReset(UdpClient socket)
     {

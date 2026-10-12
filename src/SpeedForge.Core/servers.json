@@ -1896,6 +1896,7 @@
   },
   {
     "id": "beeline-iperf2",
+    "iperf2Legacy": true,
     "region": "Россия",
     "country": "Россия",
     "group": "Билайн",

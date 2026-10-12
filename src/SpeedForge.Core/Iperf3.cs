@@ -93,7 +93,8 @@ public static class Iperf3Parser
             }
             else run.MetricOrigin = "iperf3 TCP, end.sum_received";
 
-            if (Try(root, "intervals") is { } intervals && intervals.ValueKind == JsonValueKind.Array)
+            if (!(run.Transport == TransportKind.Udp && run.Direction == TestDirection.Upload)
+                && Try(root, "intervals") is { } intervals && intervals.ValueKind == JsonValueKind.Array)
             {
                 foreach (var interval in intervals.EnumerateArray().Take(100))
                 {

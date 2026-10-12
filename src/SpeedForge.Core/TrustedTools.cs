@@ -46,13 +46,13 @@ public sealed class TrustedTools
         finally { _gate.Release(); }
     }
 
-    public async Task<ApprovedTool> RequireVerifiedAsync(EngineKind kind, CancellationToken ct)
+    public async Task<ApprovedTool> RequireVerifiedAsync(EngineKind kind, CancellationToken ct, bool legacyIperf2 = false)
     {
         await _gate.WaitAsync(ct);
         ApprovedTool? rec;
         try { rec = Read().FirstOrDefault(x => x.Engine == kind); }
         finally { _gate.Release(); }
-        if (rec == null && kind is EngineKind.Iperf3 or EngineKind.Iperf2) return await BundledIperf.RequireAsync(ct, kind);
+        if (rec == null && kind is EngineKind.Iperf3 or EngineKind.Iperf2) return await BundledIperf.RequireAsync(ct, kind, legacyIperf2);
         if (rec == null) throw new FileNotFoundException($"Исполняемый модуль {kind} ещё не выбран и не одобрен пользователем");
         var full = CheckPath(rec.Path);
         var hash = await HashAsync(full, ct);

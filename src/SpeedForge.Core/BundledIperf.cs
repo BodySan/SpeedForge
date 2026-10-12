@@ -21,15 +21,17 @@ public static class BundledIperf
     }
     public const string ExecutableSha256 = "bcafba4aff825fa94685b6b3d049f8b1338c69e6dc1d06e6a00ac046191e4999";
     public const string Iperf2Sha256 = "1030be63b604147a2a27f783e162237606059de0e7ddb125834328a58e8dc2aa";
+    public const string Iperf2LegacySha256 = "575691cf45a3586fb3f6953f134a1a3d9edf0d03ade09aff5a6eb422bd080726";
     private static readonly SemaphoreSlim Gate = new(1, 1);
-    public static async Task<ApprovedTool> RequireAsync(CancellationToken ct, EngineKind kind = EngineKind.Iperf3)
+    public static async Task<ApprovedTool> RequireAsync(CancellationToken ct, EngineKind kind = EngineKind.Iperf3, bool legacyIperf2 = false)
     {
         await Gate.WaitAsync(ct);
         try
         {
             var assembly = typeof(BundledIperf).Assembly;
-            string name = kind == EngineKind.Iperf2 ? "iperf2" : "iperf3";
-            string version = kind == EngineKind.Iperf2 ? "2.2.2" : "3.22";
+            string name = kind == EngineKind.Iperf2 ? legacyIperf2 ? "iperf2-legacy" : "iperf2" : "iperf3";
+            string version = kind == EngineKind.Iperf2 ? legacyIperf2 ? "2.0.8" : "2.2.2" : "3.22";
+            string executable = kind == EngineKind.Iperf2 ? "iperf2.exe" : "iperf3.exe";
             using var hashStream = assembly.GetManifestResourceStream($"SpeedForge.Core.Bundled.{name}-hashes.json")
                 ?? throw new FileNotFoundException("Отсутствует встроенный iPerf3");
             var hashes = await JsonSerializer.DeserializeAsync<Dictionary<string, string>>(hashStream, cancellationToken: ct)
@@ -58,7 +60,7 @@ public static class BundledIperf
             var dlls = Directory.GetFiles(root, "*.dll");
             if (dlls.Length != hashes.Count(x => x.Key.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)))
                 throw new UnauthorizedAccessException("В каталоге встроенного iPerf3 появились посторонние DLL");
-            return new ApprovedTool(Path.Combine(root, name + ".exe"), hashes[name + ".exe"], kind,
+            return new ApprovedTool(Path.Combine(root, executable), hashes[executable], kind,
                 hashes.Where(x => x.Key.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)).ToDictionary(x => x.Key, x => x.Value));
         }
         finally { Gate.Release(); }

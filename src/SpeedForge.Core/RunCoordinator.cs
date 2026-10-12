@@ -37,7 +37,7 @@ public sealed class RunCoordinator(TrustedTools trusted, RunStore store)
             run.ResolvedIp = ip.ToString();
             run.Diagnostics.Event("dns.selected", ip.ToString() + " (fixed for this run)");
             run.Limitations.Add("Успех одного запуска не доказывает постоянную доступность сервера");
-            if (options.MeasureLatency)
+            if (options.MeasureLatency && options.MeasureLatencyBefore)
             {
                 progress?.Report("Измерение задержки до нагрузки...");
                 run.Latency.AddRange(await LatencyCollector.CollectAsync(ip, ProbePhase.Idle, TimeSpan.FromSeconds(2), ct));
@@ -63,12 +63,12 @@ public sealed class RunCoordinator(TrustedTools trusted, RunStore store)
                 try { run.Latency.AddRange(await concurrent); }
                 catch (OperationCanceledException) { }
             }
-            if (options.MeasureLatency && !ct.IsCancellationRequested)
+            if (options.MeasureLatency && options.MeasureLatencyAfter && !ct.IsCancellationRequested)
             {
                 progress?.Report("Контроль восстановления задержки...");
                 run.Latency.AddRange(await LatencyCollector.CollectAsync(ip, ProbePhase.Recovery, TimeSpan.FromSeconds(2), ct));
             }
-            if (run.Status == RunStatus.Measured && options.MeasureLatency
+            if (run.Status == RunStatus.Measured && options.MeasureLatency && options.MeasureLatencyBefore
                 && run.Latency.Count(x => x.Phase == ProbePhase.Idle && x.RttMilliseconds.HasValue) < 3)
                 run.Limitations.Add("Базовая RTT выборка слишком мала для уверенного диагноза задержек под нагрузкой");
             progress?.Report("Завершено: " + run.Status);

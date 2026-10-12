@@ -40,6 +40,14 @@ public static partial class Iperf2TextParser
         }
         if (receivers.Length == 0)
         {
+            if (relayed.Count > 0)
+            {
+                result.Status = RunStatus.EngineError;
+                result.ErrorCode = "IPERF2_RECEIVER_REPORT_INVALID";
+                result.ErrorText = "Сервер вернул отчёт, но его значения не соответствуют формату или длительности теста. Возможна несовместимость версий iPerf2.";
+                result.MetricOrigin = "iPerf2: полученный Server Report отклонён";
+                return;
+            }
             result.Status = result.SenderBytes is > 0 ? RunStatus.Partial : RunStatus.InsufficientData;
             result.ErrorCode = result.Direction == TestDirection.Download ? "IPERF2_REVERSE_NO_DATA" : "IPERF2_RECEIVER_UNCONFIRMED";
             result.ErrorText = result.Direction == TestDirection.Download ? "Обратное направление не передало данные. Ответ измерителя сохранён в отладке."
@@ -50,6 +58,7 @@ public static partial class Iperf2TextParser
         }
         result.ReceiverBytes = receivers.Sum(x => x.Bytes);
         result.ReceiverMbps = receivers.Sum(x => x.Bps) / 1_000_000;
+        result.ReceiverStreams = receivers.Any(x => x.Id == "SUM") ? result.Options.ParallelStreams : receivers.Length;
         result.Mbps = result.ReceiverMbps;
         if (result.Direction == TestDirection.Download) result.DownloadMbps = result.Mbps;
         else result.UploadMbps = result.Mbps;
@@ -64,7 +73,12 @@ public static partial class Iperf2TextParser
         result.MetricOrigin = result.Direction == TestDirection.Download ? "iPerf2 UDP: локальный приёмник" : "iPerf2 UDP: Server Report принимающей стороны";
         bool missingStreams = !receivers.Any(x => x.Id == "SUM") && receivers.Length < result.Options.ParallelStreams;
         result.Status = result.ReceiverBytes == 0 ? RunStatus.NoData : missingStreams ? RunStatus.Partial : RunStatus.Measured;
-        if (missingStreams) { result.ErrorCode = "IPERF2_MISSING_STREAM_REPORTS"; result.Limitations.Add("Не все потоки вернули отчёт приёмника"); }
+        if (missingStreams)
+        {
+            result.ErrorCode = "IPERF2_MISSING_STREAM_REPORTS";
+            result.ErrorText = $"Сервер подтвердил приём {receivers.Length} из {result.Options.ParallelStreams} потоков. Скорость относится только к подтверждённым потокам.";
+            result.Limitations.Add("Не все потоки вернули отчёт приёмника");
+        }
         result.Diagnostics?.Event("iperf2.parser", $"receiver summaries={receivers.Length}; sender summaries={senders.Length}; missing streams={missingStreams}");
     }
     public static MeasurementProgress? Interval(string line, TestDirection direction)
@@ -74,7 +88,8 @@ public static partial class Iperf2TextParser
     }
     private static Row[] Summary(IEnumerable<Row> candidates, int duration)
     {
-        var rows = candidates.Where(x => x.Start <= 0.15 && x.End >= Math.Max(1, duration * 0.75)).ToArray();
+        var rows = candidates.Where(x => x.Start <= 0.15 && x.End >= Math.Max(1, duration * 0.75)
+            && x.End <= duration + Math.Max(2, duration * 0.1)).ToArray();
         var sum = rows.Where(x => x.Id == "SUM").OrderByDescending(x => x.End).FirstOrDefault();
         return sum != null ? [sum] : rows.GroupBy(x => x.Id).Select(x => x.OrderByDescending(y => y.End).First()).ToArray();
     }

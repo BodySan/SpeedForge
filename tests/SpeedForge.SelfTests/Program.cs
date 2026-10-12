@@ -3,14 +3,16 @@ using System.Net;
 
 if (args.Contains("--emit-output")) { Console.Write(new string('x', 4_100_000)); Console.Error.Write("stderr-marker"); return 0; }
 if (args.Length >= 2 && args[0] == "--audit-catalog") return await CatalogAudit.RunAsync(Path.GetFullPath(args[1]), args.Contains("--udp"));
-if (args.Length >= 2 && args[0] == "--audit-beeline") return await BeelineAudit.RunAsync(Path.GetFullPath(args[1]));
+if (args.Length >= 2 && args[0] == "--parse-console") return await ConsoleParserAudit.RunAsync(Path.GetFullPath(args[1]));
+if (args.Length >= 2 && args[0] == "--audit-beeline") return await BeelineAudit.RunAsync(Path.GetFullPath(args[1]), args.Contains("--local"), args.Contains("--archive-rates"), args.Contains("--latency"));
 if (args.Length >= 2 && args[0] == "--sandbox-serve") return await SandboxInfrastructure.ServeAsync(Path.GetFullPath(args[1]));
 if (args.Length >= 2 && args[0] == "--sandbox-test") return await SandboxTests.RunAsync(Path.GetFullPath(args[1]), args.Contains("--iperf2-only"));
 if (args.Length >= 2 && args[0] == "--tools-json")
 {
     var iperf3 = await BundledIperf.RequireAsync(CancellationToken.None, EngineKind.Iperf3);
     var iperf2 = await BundledIperf.RequireAsync(CancellationToken.None, EngineKind.Iperf2);
-    await File.WriteAllTextAsync(args[1], System.Text.Json.JsonSerializer.Serialize(new { Iperf3 = iperf3, Iperf2 = iperf2 }));
+    var legacy = await BundledIperf.RequireAsync(CancellationToken.None, EngineKind.Iperf2, true);
+    await File.WriteAllTextAsync(args[1], System.Text.Json.JsonSerializer.Serialize(new { Iperf3 = iperf3, Iperf2 = iperf2, Iperf2Legacy = legacy }));
     return 0;
 }
 
@@ -32,6 +34,7 @@ const string Good = """
 {"start":{"version":"iperf 3.22"},"intervals":[{"sum":{"start":0,"end":1,"bytes":1250000,"bits_per_second":10000000}}],"end":{"sum_sent":{"bytes":10000000,"bits_per_second":10000000,"retransmits":4},"sum_received":{"bytes":9000000,"bits_per_second":9000000}}}
 """;
 GeoIpTests.Register(Case);
+SpeedRegressionTests.Register(Case);
 const string NoData = """
 {"end":{"sum_sent":{"bytes":0,"bits_per_second":0},"sum_received":{"bytes":0,"bits_per_second":0}}}
 """;

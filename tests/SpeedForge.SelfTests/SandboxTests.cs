@@ -97,6 +97,15 @@ internal static class SandboxTests
             var run = await Coordinator("bidir").RunAsync(ServerCatalog.Custom("127.0.0.1", 55201, EngineKind.Iperf3), options with { Direction = TestDirection.Bidirectional }, null, null, CancellationToken.None);
             Require(run.Status == RunStatus.Measured && run.UploadMbps > 0 && run.DownloadMbps > 0, JsonSerializer.Serialize(run, Json));
         });
+        await Check("iPerf3 UDP: до отчёта сервера не публикуется локальная скорость отправки", async () =>
+        {
+            var samples = new System.Collections.Concurrent.ConcurrentBag<MeasurementProgress>();
+            var run = await Coordinator("udp-upload-provenance").RunAsync(ServerCatalog.Custom("127.0.0.1", 55201, EngineKind.Iperf3),
+                options with { Direction = TestDirection.Upload, Transport = TransportKind.Udp }, null, null, CancellationToken.None,
+                new InlineProgress<MeasurementProgress>(samples.Add));
+            Require(run.Status == RunStatus.Measured && run.UploadMbps > 0 && samples.IsEmpty && run.Intervals.Count == 0,
+                "В карточку или график переданы локальные UDP-интервалы отправителя");
+        });
         await Check("iPerf2 без ACK сохраняет TX, не подтверждает приём", async () =>
         {
             var run = await Coordinator("no-ack").RunAsync(ServerCatalog.Custom("127.0.0.1", 55208, EngineKind.Iperf2),
@@ -115,11 +124,58 @@ internal static class SandboxTests
         });
         await Check("Настоящий iPerf2: все 8 профилей архива и отдельный reverse", async () =>
         {
-            var server = ServerCatalog.LoadPublished().Single(x => x.Id == "beeline-iperf2") with { Host = "127.0.0.1", Port = 55210, Ports = [55210] };
+            var server = ServerCatalog.LoadPublished().Single(x => x.Id == "beeline-iperf2") with { Host = "127.0.0.1", Port = 55214, Ports = [55214] };
             var runs = await Pair(server, "beeline-profiles", options with { Transport = TransportKind.Udp });
             Require(runs.Count == 9 && runs.Take(8).All(x => x.Status == RunStatus.Measured && x.ReceiverMbps > 0)
-                && runs[^1].Direction == TestDirection.Download && runs[^1].Status == RunStatus.Measured, JsonSerializer.Serialize(runs, Json));
+                && runs[^1].Direction == TestDirection.Download && runs[^1].Status == RunStatus.Timeout, JsonSerializer.Serialize(runs, Json));
+            Require(runs.Take(8).All(x => x.EngineSha256 == BundledIperf.Iperf2LegacySha256)
+                && DirectionObservation.From(runs).Verdict == DirectionVerdict.UploadObserved, "Использован несовместимый клиент или выдумана загрузка старого сервера");
             Require(runs.Take(8).Select(x => x.Options.ParallelStreams).SequenceEqual(new[] {1,5,10,20,1,5,10,20}), "Потоки профилей не совпадают с архивом");
+        });
+        await Check("Билайн: совместимый клиент на канале 250 Мбит/с не ограничен до 100", async () =>
+        {
+            var server = ServerCatalog.Custom("127.0.0.1", 55215, EngineKind.Iperf2) with { Iperf2Legacy = true };
+            var run = await Coordinator("beeline-legacy-capacity").RunAsync(server,
+                options with { Direction = TestDirection.Upload, Transport = TransportKind.Udp, BandwidthLimitBitsPerSecond = 1_000_000_000 },
+                null, null, CancellationToken.None);
+            Require(run.Status == RunStatus.Measured && run.EngineSha256 == BundledIperf.Iperf2LegacySha256
+                && run.ReceiverMbps > 100 && run.ReceiverMbps < 275 && run.SenderMbps > 500, JsonSerializer.Serialize(run, Json));
+        });
+        await Check("Билайн: обновлённый сервер автоматически выбирает современный клиент", async () =>
+        {
+            var server = ServerCatalog.LoadPublished().Single(x => x.Id == "beeline-iperf2") with { Host = "127.0.0.1", Port = 55210, Ports = [55210] };
+            var coordinator = Coordinator("beeline-modern-compatibility");
+            var first = await coordinator.RunAsync(server, options with { Direction = TestDirection.Upload, Transport = TransportKind.Udp,
+                Iperf2OfferedBitsPerSecondPerStream = 100_000_000, ProbeIperf2Client = true, TimeoutSeconds = 25 }, null, null, CancellationToken.None);
+            var second = await coordinator.RunAsync(server, options with { Direction = TestDirection.Upload, Transport = TransportKind.Udp,
+                Iperf2OfferedBitsPerSecondPerStream = 100_000_000, ParallelStreams = 5 }, null, null, CancellationToken.None);
+            Require(first.Status == RunStatus.Measured && second.Status == RunStatus.Measured
+                && first.EngineSha256 == BundledIperf.Iperf2Sha256 && second.EngineSha256 == BundledIperf.Iperf2Sha256
+                && second.ReceiverStreams == 5 && !first.Limitations.Any(x => x.StartsWith("TX-only:")), JsonSerializer.Serialize(new[] { first, second }, Json));
+            Require(Directory.GetFiles(first.DebugDirectory!, "process-*-stdout.txt").Length == 4
+                && Directory.GetFiles(second.DebugDirectory!, "process-*-stdout.txt").Length == 2, "Выбор клиента повторяется перед каждым профилем");
+        });
+        foreach (var capacity in new[] { (Port: 55212, Mbps: 40), (Port: 55213, Mbps: 300) })
+            await Check($"iPerf2: приём на канале {capacity.Mbps} Мбит/с без привязки к тарифу 100", async () =>
+            {
+                var run = await Coordinator("iperf2-capacity-" + capacity.Mbps).RunAsync(
+                    ServerCatalog.Custom("127.0.0.1", capacity.Port, EngineKind.Iperf2),
+                    options with { Direction = TestDirection.Upload, Transport = TransportKind.Udp, BandwidthLimitBitsPerSecond = 1_000_000_000 },
+                    null, null, CancellationToken.None);
+                Require(run.Status == RunStatus.Measured && run.ReceiverMbps > capacity.Mbps * 0.4
+                    && run.ReceiverMbps < capacity.Mbps * 1.1 && run.SenderMbps > run.ReceiverMbps * 1.5,
+                    JsonSerializer.Serialize(run, Json));
+                Console.WriteLine($"      TX={run.SenderMbps:F1}; RX={run.ReceiverMbps:F1}; заданная ёмкость={capacity.Mbps} Мбит/с");
+            });
+        await Check("Подтверждённый резервный порт используется следующим направлением", async () =>
+        {
+            var coordinator = Coordinator("working-port-cache");
+            var server = ServerCatalog.Custom("127.0.0.1", 55203, EngineKind.Iperf3) with { Ports = [55203, 55201] };
+            var first = await coordinator.RunAsync(server, options with { Direction = TestDirection.Download }, null, null, CancellationToken.None);
+            var second = await coordinator.RunAsync(server, options with { Direction = TestDirection.Upload }, null, null, CancellationToken.None);
+            Require(first.Status == RunStatus.Measured && first.Port == 55201 && second.Status == RunStatus.Measured && second.Port == 55201,
+                JsonSerializer.Serialize(new[] { first, second }, Json));
+            Require(Directory.GetFiles(second.DebugDirectory!, "process-*-stdout.txt").Length == 2, "Повторяется перебор уже проверенных портов");
         });
         await Check("Сбой создания debug не блокирует следующий запуск", async () =>
         {
@@ -139,4 +195,5 @@ internal static class SandboxTests
         return failed == 0 ? 0 : 1;
     }
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+    private sealed class InlineProgress<T>(Action<T> receive) : IProgress<T> { public void Report(T value) => receive(value); }
 }

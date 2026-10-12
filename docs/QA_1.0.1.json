@@ -1,0 +1,51 @@
+{
+  "Version": "1.0.1",
+  "CheckedUtc": "2026-10-12T19:27:56.9498751Z",
+  "Build": {
+    "Warnings": 0,
+    "Errors": 0
+  },
+  "Regression": {
+    "Passed": 100,
+    "Failed": 0
+  },
+  "Sandbox": {
+    "Passed": 31,
+    "Failed": 0
+  },
+  "Interface": {
+    "Passed": 33,
+    "Failed": 0
+  },
+  "TotalChecks": 164,
+  "ConsoleReports": {
+    "Passed": 18,
+    "Failed": 0
+  },
+  "ArchiveProfiles": {
+    "Confirmed": 8,
+    "DurationSeconds": 10,
+    "BandwidthCap": 0,
+    "ReverseSupportedByLegacyServer": false
+  },
+  "PublicCatalog": {
+    "BaseProfiles": 65,
+    "AdditionalUdpProfiles": 60,
+    "CheckedCombinations": 125,
+    "TcpAndHttpBoth": 54,
+    "TcpAndHttpDownloadOnly": 2,
+    "TcpAndHttpUnconfirmed": 9,
+    "UdpBoth": 45,
+    "UdpUnconfirmed": 15
+  },
+  "BeelineLive": {
+    "ProfilesCompleted": 8,
+    "ReverseChecked": true,
+    "DurationPerProfile": 3,
+    "BandwidthCap": 0,
+    "ReceiverConfirmed": false,
+    "ElapsedSeconds": 76,
+    "PreviousElapsedSeconds": 159.7
+  },
+  "Privacy": "Personal IP addresses and raw public-network logs are excluded"
+}
