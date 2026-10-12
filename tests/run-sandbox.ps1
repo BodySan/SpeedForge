@@ -4,7 +4,8 @@ param(
     [switch]$NoBuild,
     [switch]$NoUi,
     [switch]$UiOnly,
-    [switch]$ResetOnly
+    [switch]$ResetOnly,
+    [switch]$GeoOnly
 )
 $ErrorActionPreference = 'Stop'
 if ($UiOnly -and $NoUi) { throw 'UiOnly и NoUi несовместимы' }
@@ -44,7 +45,7 @@ try {
     }
     if (!$NoUi) {
         if (!(Test-Path -LiteralPath $DesktopExe)) { throw 'Сначала соберите portable exe или передайте -DesktopExe' }
-        $guiFlag = if($ResetOnly) { '--verify-reset' } else { '--verify-sandbox' }
+        $guiFlag = if($ResetOnly) { '--verify-reset' } elseif($GeoOnly) { '--verify-geo' } else { '--verify-sandbox' }
         $gui = Background 'desktop' $DesktopExe @($guiFlag,(Quoted (Join-Path $output 'ui')))
         $owned += $gui
         $gui.WaitForExit()

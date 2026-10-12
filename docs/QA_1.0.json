@@ -35,5 +35,10 @@
     "ReceiverReports": 0,
     "Reverse": "Timeout",
     "Verdict": "Unconfirmed"
+  },
+  "FocusedGeoLayout": {
+    "Total": 5,
+    "Passed": 5,
+    "Failed": 0
   }
 }

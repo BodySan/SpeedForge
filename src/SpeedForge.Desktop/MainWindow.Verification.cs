@@ -10,7 +10,7 @@ namespace SpeedForge.Desktop;
 
 public partial class MainWindow
 {
-    public async Task<bool> VerifySandboxAsync(string directory, bool resetOnly = false)
+    public async Task<bool> VerifySandboxAsync(string directory, bool resetOnly = false, bool geoOnly = false)
     {
         Directory.CreateDirectory(directory);
         var cases = new List<object>();
@@ -19,6 +19,7 @@ public partial class MainWindow
         async Task Test(string name, Func<Task> action)
         {
             if (resetOnly && name is not ("Ручная загрузка не запускает отдачу" or "Смена сервера очищает прежние скорости и график" or "На главном экране видна ровно одна кнопка действия")) return;
+            if (geoOnly && !name.StartsWith("GeoIP:", StringComparison.Ordinal)) return;
             try { await action(); cases.Add(new { Name = name, Passed = true }); }
             catch (Exception ex) { failed++; cases.Add(new { Name = name, Passed = false, Error = ex.ToString() }); }
             await File.WriteAllTextAsync(Path.Combine(directory, "ui-tests.json"), JsonSerializer.Serialize(new { Failed = failed, Cases = cases }, VerificationJson));
@@ -219,6 +220,8 @@ public partial class MainWindow
             SelectServer(_servers.Single(x => x.Id == "rastrnet-https"));
             await RefreshNetworkAsync((_,_) => Task.FromResult(new NetworkIdentity("8.8.8.8","8.8.8.8","STUN","Moscow","Example",15169,new(55.75,37.61))));
             Require(CurrentServer().City == "Москва" && ConnectionInfo.Text.Contains("8.8.8.8"), "IP скрыт или выбран неверный город");
+            UpdateLayout(); await Task.Delay(100);
+            Require(MainScroll.ScrollableHeight < 1, "Строка IP вытеснила главный экран в прокрутку");
             SavePreview(Path.Combine(directory, "geoip-auto.png"));
             WindowPreview.Save(this, Path.Combine(directory, "geoip-window.png"));
         });

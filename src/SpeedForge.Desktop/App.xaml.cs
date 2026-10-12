@@ -6,7 +6,7 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
-        string? dataRoot = e.Args.Length >= 2 && e.Args[0] is "--verify-ui" or "--verify-sandbox" or "--verify-reset" or "--verify-network"
+        string? dataRoot = e.Args.Length >= 2 && e.Args[0] is "--verify-ui" or "--verify-sandbox" or "--verify-reset" or "--verify-network" or "--verify-geo"
             ? Path.Combine(Path.GetFullPath(e.Args[1]), "app-data") : null;
         var window = new MainWindow(dataRoot, e.Args.Length == 0 || e.Args[0] == "--verify-network");
         MainWindow = window;
@@ -35,9 +35,9 @@ public partial class App : Application
                 try { Shutdown(await window.VerifyNetworkAsync(Path.GetFullPath(e.Args[1])) ? 0 : 1); }
                 catch (Exception ex) { Directory.CreateDirectory(e.Args[1]); File.WriteAllText(Path.Combine(e.Args[1], "fatal.txt"), ex.ToString()); Shutdown(2); }
             }
-            else if (e.Args.Length >= 2 && e.Args[0] is "--verify-sandbox" or "--verify-reset")
+            else if (e.Args.Length >= 2 && e.Args[0] is "--verify-sandbox" or "--verify-reset" or "--verify-geo")
             {
-                try { Shutdown(await window.VerifySandboxAsync(Path.GetFullPath(e.Args[1]), e.Args[0] == "--verify-reset") ? 0 : 1); }
+                try { Shutdown(await window.VerifySandboxAsync(Path.GetFullPath(e.Args[1]), e.Args[0] == "--verify-reset", e.Args[0] == "--verify-geo") ? 0 : 1); }
                 catch (Exception ex) { Directory.CreateDirectory(e.Args[1]); File.WriteAllText(Path.Combine(e.Args[1], "fatal.txt"), ex.ToString()); Shutdown(2); }
             }
         };
