@@ -1,0 +1,42 @@
+name: Windows build and sandbox
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      MSBuildEnableWorkloadResolver: 'false'
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-dotnet@v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build portable application
+        shell: pwsh
+        run: ./build-windows.ps1
+      - name: Run real loopback sandbox and UI checks
+        shell: pwsh
+        run: ./tests/run-sandbox.ps1 -NoBuild
+      - name: Save application and verification artifacts
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: SpeedForge-windows-x64
+          path: |
+            publish/win-x64/SpeedForge.exe
+            sandbox-output/regression-tests.txt
+            sandbox-output/sandbox-tests.txt
+            sandbox-output/core/sandbox-tests.json
+            sandbox-output/ui/ui-tests.json
+            sandbox-output/ui/ui-summary.txt
+            sandbox-output/ui/*.png
+          if-no-files-found: warn
+          retention-days: 14

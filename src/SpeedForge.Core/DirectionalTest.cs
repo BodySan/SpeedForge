@@ -1,0 +1,66 @@
+namespace SpeedForge.Core;
+
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DirectionVerdict>))]
+public enum DirectionVerdict { Both, DownloadObserved, UploadObserved, Unconfirmed, Cancelled }
+
+public sealed record DirectionObservation(DirectionVerdict Verdict, string Description)
+{
+    public static DirectionObservation From(IEnumerable<RunResult> results)
+    {
+        var runs = results.ToArray();
+        bool download = runs.Any(x => Confirmed(x) && x.DownloadMbps > 0);
+        bool upload = runs.Any(x => Confirmed(x) && x.UploadMbps > 0);
+        if (download && upload) return new(DirectionVerdict.Both, "Загрузка и отдача подтверждены");
+        if (runs.Any(x => x.Status == RunStatus.Cancelled)) return new(DirectionVerdict.Cancelled, "Проверка остановлена");
+        if (download) return new(DirectionVerdict.DownloadObserved, "Подтверждена загрузка на ПК; отдача не подтверждена");
+        if (upload) return new(DirectionVerdict.UploadObserved, "Подтверждена отдача с ПК; загрузка не подтверждена");
+        return new(DirectionVerdict.Unconfirmed, "Измерение не подтверждено — подробности в журнале");
+    }
+
+    public static bool Confirmed(RunResult run) => run.Status == RunStatus.Measured
+        && (run.Mbps > 0 || run.DownloadMbps > 0 && run.UploadMbps > 0);
+}
+
+public static class DirectionalTest
+{
+    public static TestDirection[] Plan(ServerEntry server, TestOptions options, bool automatic) =>
+        automatic ? server.Engine == EngineKind.Http && server.Http is { UploadUrl: null }
+            ? [TestDirection.Download] : server.Engine == EngineKind.Iperf2
+                ? [TestDirection.Upload, TestDirection.Download] : [TestDirection.Download, TestDirection.Upload]
+            : [options.Direction];
+
+    public static async Task<IReadOnlyList<RunResult>> RunAsync(ServerEntry server, TestOptions options, bool automatic,
+        Func<TestOptions, Task<RunResult>> measure, CancellationToken ct)
+    {
+        var results = new List<RunResult>();
+        if (server.Engine == EngineKind.Iperf2 && server.Iperf2Profiles.Length > 0 && options.UseIperf2Profiles
+            && (automatic || options.Direction == TestDirection.Upload))
+        {
+            foreach (var profile in server.Iperf2Profiles)
+            {
+                if (ct.IsCancellationRequested) return results;
+                var next = options with { Direction = TestDirection.Upload, Transport = TransportKind.Udp,
+                    ParallelStreams = profile.Streams, Iperf2OfferedBitsPerSecondPerStream = profile.BitsPerSecondPerStream };
+                next.Validate();
+                results.Add(await measure(next));
+                if (ct.IsCancellationRequested) return results;
+                await Task.Delay(350, ct);
+            }
+            // The supplied archive contains upload profiles. Probe reverse separately with one stream.
+            if (automatic && !ct.IsCancellationRequested)
+                results.Add(await measure(options with { Direction = TestDirection.Download, ParallelStreams = 1,
+                    Iperf2OfferedBitsPerSecondPerStream = 0 }));
+            return results;
+        }
+        var plan = Plan(server, options, automatic);
+        for (int index = 0; index < plan.Length; index++)
+        {
+            if (ct.IsCancellationRequested) break;
+            results.Add(await measure(options with { Direction = plan[index] }));
+            if (ct.IsCancellationRequested) break;
+            // Give public single-client servers time to finish their previous session.
+            if (index < plan.Length - 1) await Task.Delay(350, ct);
+        }
+        return results;
+    }
+}

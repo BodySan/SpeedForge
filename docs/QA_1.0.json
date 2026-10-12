@@ -1,0 +1,33 @@
+{
+  "Version": "1.0.0",
+  "Date": "2026-10-12",
+  "BuildErrors": 0,
+  "BuildWarnings": 0,
+  "Regression": {
+    "Total": 84,
+    "Passed": 84,
+    "Failed": 0
+  },
+  "Sandbox": {
+    "Total": 25,
+    "Passed": 25,
+    "Failed": 0
+  },
+  "UI": {
+    "Total": 26,
+    "Passed": 26,
+    "Failed": 0
+  },
+  "Iperf2RateProof": {
+    "OfferedMbps": 1000,
+    "SenderMbps": 994.5,
+    "ReceiverMbps": 81.45,
+    "ReceiverOnlyInCardAndChart": true
+  },
+  "LiveBeeline": {
+    "UploadProfilesCompleted": 8,
+    "ReceiverReports": 0,
+    "Reverse": "Timeout",
+    "Verdict": "Unconfirmed"
+  }
+}

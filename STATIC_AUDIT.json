@@ -1,0 +1,135 @@
+{
+  "checked_at_utc": "2026-10-12T15:12:39.884179+00:00",
+  "scope": "Static structure only, not build/test execution",
+  "source_count": 29,
+  "checks": 25,
+  "passed": 25,
+  "failed": 0,
+  "results": [
+    {
+      "name": "C# source files",
+      "pass_check": true,
+      "detail": "29"
+    },
+    {
+      "name": "XML src\\SpeedForge.Desktop\\App.xaml",
+      "pass_check": true,
+      "detail": "valid XML"
+    },
+    {
+      "name": "XML src\\SpeedForge.Desktop\\MainWindow.xaml",
+      "pass_check": true,
+      "detail": "valid XML"
+    },
+    {
+      "name": "XML src\\SpeedForge.Core\\SpeedForge.Core.csproj",
+      "pass_check": true,
+      "detail": "valid XML"
+    },
+    {
+      "name": "XML src\\SpeedForge.Desktop\\SpeedForge.Desktop.csproj",
+      "pass_check": true,
+      "detail": "valid XML"
+    },
+    {
+      "name": "XML src\\SpeedForge.Endpoint\\SpeedForge.Endpoint.csproj",
+      "pass_check": true,
+      "detail": "valid XML"
+    },
+    {
+      "name": "XML tests\\SpeedForge.SelfTests\\SpeedForge.SelfTests.csproj",
+      "pass_check": true,
+      "detail": "valid XML"
+    },
+    {
+      "name": "XML SpeedForge.slnx",
+      "pass_check": true,
+      "detail": "valid XML"
+    },
+    {
+      "name": "XML src\\SpeedForge.Desktop\\app.manifest",
+      "pass_check": true,
+      "detail": "valid XML"
+    },
+    {
+      "name": "XML Directory.Build.props",
+      "pass_check": true,
+      "detail": "valid XML"
+    },
+    {
+      "name": "All XAML event handlers exist",
+      "pass_check": true,
+      "detail": "['Window_Closing', 'Filters_Changed', 'Filters_Changed', 'Filters_Changed', 'Server_Changed', 'Profile_Changed', 'Profile_Changed', 'Profile_Changed', 'Profile_Changed', 'Direction_Changed', 'Transport_Changed', 'Rate_Changed', 'ClearRate_Click', 'Custom_Changed', 'Custom_Changed', 'Custom_Changed', 'Custom_Changed', 'Probe_Click', 'Chart_SizeChanged', 'Run_Click', 'Cancel_Click', 'Refresh_Click', 'HistoryDebug_Click', 'TechnicalExport_Click', 'CatalogSearch_Changed', 'Catalog_DoubleClick', 'TrustIperf3_Click', 'TrustIperf2_Click', 'LicensesExport_Click', 'Compare_Click', 'DocsCatalog_Click', 'DocsMts_Click', 'DocsHostkey_Click', 'DocsSelectel_Click', 'DocsRastr_Click', 'Probe_Click', 'DebugExport_Click', 'DebugFolder_Click', 'DebugRuns_Changed']"
+    },
+    {
+      "name": "Catalog JSON",
+      "pass_check": true,
+      "detail": "count=65"
+    },
+    {
+      "name": "Catalog has sources and provenance",
+      "pass_check": true,
+      "detail": ""
+    },
+    {
+      "name": "Every catalog entry has an observation",
+      "pass_check": true,
+      "detail": "125"
+    },
+    {
+      "name": "Project paths src\\SpeedForge.Core\\SpeedForge.Core.csproj",
+      "pass_check": true,
+      "detail": "[]"
+    },
+    {
+      "name": "Project paths src\\SpeedForge.Desktop\\SpeedForge.Desktop.csproj",
+      "pass_check": true,
+      "detail": "['..\\\\SpeedForge.Core\\\\SpeedForge.Core.csproj']"
+    },
+    {
+      "name": "Project paths src\\SpeedForge.Endpoint\\SpeedForge.Endpoint.csproj",
+      "pass_check": true,
+      "detail": "[]"
+    },
+    {
+      "name": "Project paths tests\\SpeedForge.SelfTests\\SpeedForge.SelfTests.csproj",
+      "pass_check": true,
+      "detail": "['..\\\\..\\\\src\\\\SpeedForge.Core\\\\SpeedForge.Core.csproj']"
+    },
+    {
+      "name": "Process args never built as shell string",
+      "pass_check": true,
+      "detail": ""
+    },
+    {
+      "name": "No TLS validation bypass",
+      "pass_check": true,
+      "detail": ""
+    },
+    {
+      "name": "No automatic binary downloading",
+      "pass_check": true,
+      "detail": ""
+    },
+    {
+      "name": "No drivers or registry autorun",
+      "pass_check": true,
+      "detail": ""
+    },
+    {
+      "name": "Native EXE hash before launch",
+      "pass_check": true,
+      "detail": ""
+    },
+    {
+      "name": "DNS IP pin + redirect denial",
+      "pass_check": true,
+      "detail": ""
+    },
+    {
+      "name": "Basic rate/time limits",
+      "pass_check": true,
+      "detail": ""
+    }
+  ]
+}

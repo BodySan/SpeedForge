@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="src/SpeedForge.Core/SpeedForge.Core.csproj" />
+  <Project Path="src/SpeedForge.Desktop/SpeedForge.Desktop.csproj" />
+  <Project Path="src/SpeedForge.Endpoint/SpeedForge.Endpoint.csproj" />
+  <Project Path="tests/SpeedForge.SelfTests/SpeedForge.SelfTests.csproj" />
+</Solution>

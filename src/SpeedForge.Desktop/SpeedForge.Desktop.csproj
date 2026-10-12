@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>SpeedForge</AssemblyName>
+    <RootNamespace>SpeedForge.Desktop</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\..\assets\SpeedForge.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SpeedForge.Core\SpeedForge.Core.csproj" />
+    <Resource Include="..\..\assets\SpeedForge.ico" Link="Assets\SpeedForge.ico" />
+    <Resource Include="..\..\assets\SpeedForge.png" Link="Assets\SpeedForge.png" />
+  </ItemGroup>
+</Project>

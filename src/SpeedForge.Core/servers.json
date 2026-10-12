@@ -1,0 +1,1930 @@
+[
+  {
+    "id": "ru-st-barnaul-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Барнаул",
+    "host": "st.barnaul.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-ekat-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Екатеринбург",
+    "host": "st.ekat.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-izhevsk-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Ижевск",
+    "host": "st.izhevsk.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-irkutsk-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Иркутск",
+    "host": "st.irkutsk.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-kzn-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Казань",
+    "host": "st.kzn.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-kazst-st-mtsws-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "МТС",
+    "city": "Казань",
+    "host": "kazst.st.mtsws.net",
+    "port": 3333,
+    "ports": [
+      3333
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-kirov-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Киров",
+    "host": "st.kirov.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-krsk-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Красноярск",
+    "host": "st.krsk.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-kurgan-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Курган",
+    "host": "st.kurgan.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-kursk-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Курск",
+    "host": "st.kursk.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-mgn-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Магнитогорск",
+    "host": "st.mgn.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-chelny-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Набережные Челны",
+    "host": "st.chelny.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-omsk-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Омск",
+    "host": "st.omsk.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-nsk-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Новосибирск",
+    "host": "st.nsk.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-nk-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Новокузнецк",
+    "host": "st.nk.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-oren-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Оренбург",
+    "host": "st.oren.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-penza-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Пенза",
+    "host": "st.penza.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-perm-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Пермь",
+    "host": "st.perm.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-rostov-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Ростов-на-Дону",
+    "host": "st.rostov.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-ryazan-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Рязань",
+    "host": "st.ryazan.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-samara-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Самара",
+    "host": "st.samara.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-spb-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Санкт-Петербург",
+    "host": "st.spb.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-saratov-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Саратов",
+    "host": "st.saratov.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-tver-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Тверь",
+    "host": "st.tver.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-tomsk-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Томск",
+    "host": "st.tomsk.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-tula-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Тула",
+    "host": "st.tula.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-tmn-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Тюмень",
+    "host": "st.tmn.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-tumst-st-mtsws-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "МТС",
+    "city": "Тюмень",
+    "host": "tumst.st.mtsws.net",
+    "port": 3333,
+    "ports": [
+      3333
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-ulsk-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Ульяновск",
+    "host": "st.ulsk.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-ufa-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Уфа",
+    "host": "st.ufa.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-cheb-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Чебоксары",
+    "host": "st.cheb.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-chel-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Челябинск",
+    "host": "st.chel.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-yar-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Ярославль",
+    "host": "st.yar.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-lipetsk-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Липецк",
+    "host": "st.lipetsk.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-bryansk-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Брянск",
+    "host": "st.bryansk.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-volgograd-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Волгоград",
+    "host": "st.volgograd.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-voronezh-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Воронеж",
+    "host": "st.voronezh.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-nn-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Нижний Новгород",
+    "host": "st.nn.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-st-yola-ertelecom-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Дом.ру / ЭР-Телеком",
+    "city": "Йошкар-Ола",
+    "host": "st.yola.ertelecom.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-speed-vgd-vtt-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "TTK",
+    "city": "Волгоград",
+    "host": "speed-vgd.vtt.net",
+    "port": 5201,
+    "ports": [
+      5201
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-speed-nn-vtt-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "TTK",
+    "city": "Нижний Новгород",
+    "host": "speed-nn.vtt.net",
+    "port": 5201,
+    "ports": [
+      5201
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-speed-vtt-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "TTK",
+    "city": "Саратов",
+    "host": "speed.vtt.net",
+    "port": 5201,
+    "ports": [
+      5201
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-speed-sar-vtt-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "TTK",
+    "city": "Саранск",
+    "host": "speed-sar.vtt.net",
+    "port": 5201,
+    "ports": [
+      5201
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-speed-vld-vtt-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "TTK",
+    "city": "Владимир",
+    "host": "speed-vld.vtt.net",
+    "port": 5201,
+    "ports": [
+      5201
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-voronezh-speedtest-corbina-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Билайн",
+    "city": "Voronezh",
+    "host": "voronezh-speedtest.corbina.net",
+    "port": 5201,
+    "ports": [
+      5201
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-astrakhan1-speedtest-corbina-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Билайн",
+    "city": "Астрахань",
+    "host": "astrakhan1.speedtest.corbina.net",
+    "port": 5201,
+    "ports": [
+      5201
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-spd-rudp-hostkey-ru",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "HOSTKEY",
+    "city": "Москва",
+    "host": "spd-rudp.hostkey.ru",
+    "port": 5201,
+    "ports": [
+      5201,
+      5202,
+      5203,
+      5204,
+      5205,
+      5206,
+      5207,
+      5208,
+      5209
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-mskst-st-mtsws-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "МТС",
+    "city": "Москва",
+    "host": "mskst.st.mtsws.net",
+    "port": 3333,
+    "ports": [
+      3333
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-kndst-st-mtsws-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "МТС",
+    "city": "Краснодар",
+    "host": "kndst.st.mtsws.net",
+    "port": 3333,
+    "ports": [
+      3333
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-yktst-st-mtsws-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "МТС",
+    "city": "Якутск",
+    "host": "yktst.st.mtsws.net",
+    "port": 3333,
+    "ports": [
+      3333
+    ],
+    "engine": "Iperf3",
+    "source": "https://github.com/itdoginfo/russian-iperf3-servers",
+    "provenance": "Опубликован в каталоге; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp",
+      "Udp"
+    ],
+    "notes": "Перебор портов выбранного сервера. Поддержка направления проверяется фактическим тестом."
+  },
+  {
+    "id": "ru-irkst-st-mtsws-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "МТС",
+    "city": "Иркутск",
+    "host": "irkst.st.mtsws.net",
+    "port": 3333,
+    "ports": [
+      3333
+    ],
+    "engine": "Iperf3",
+    "source": "https://lg.mtu.ru/list.html",
+    "provenance": "Официальный список МТС; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp"
+    ],
+    "notes": "МТС, порт 3333. Для двух направлений рекомендуются последовательные тесты."
+  },
+  {
+    "id": "ru-vldvst-st-mtsws-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "МТС",
+    "city": "Владивосток",
+    "host": "vldvst.st.mtsws.net",
+    "port": 3333,
+    "ports": [
+      3333
+    ],
+    "engine": "Iperf3",
+    "source": "https://lg.mtu.ru/list.html",
+    "provenance": "Официальный список МТС; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp"
+    ],
+    "notes": "МТС, порт 3333. Для двух направлений рекомендуются последовательные тесты."
+  },
+  {
+    "id": "ru-norst-st-mtsws-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "МТС",
+    "city": "Норильск",
+    "host": "norst.st.mtsws.net",
+    "port": 3333,
+    "ports": [
+      3333
+    ],
+    "engine": "Iperf3",
+    "source": "https://lg.mtu.ru/list.html",
+    "provenance": "Официальный список МТС; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp"
+    ],
+    "notes": "МТС, порт 3333. Для двух направлений рекомендуются последовательные тесты."
+  },
+  {
+    "id": "ru-nskst-st-mtsws-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "МТС",
+    "city": "Новосибирск",
+    "host": "nskst.st.mtsws.net",
+    "port": 3333,
+    "ports": [
+      3333
+    ],
+    "engine": "Iperf3",
+    "source": "https://lg.mtu.ru/list.html",
+    "provenance": "Официальный список МТС; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp"
+    ],
+    "notes": "МТС, порт 3333. Для двух направлений рекомендуются последовательные тесты."
+  },
+  {
+    "id": "ru-pkst-st-mtsws-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "МТС",
+    "city": "Петропавловск-Камчатский",
+    "host": "pkst.st.mtsws.net",
+    "port": 3333,
+    "ports": [
+      3333
+    ],
+    "engine": "Iperf3",
+    "source": "https://lg.mtu.ru/list.html",
+    "provenance": "Официальный список МТС; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp"
+    ],
+    "notes": "МТС, порт 3333. Для двух направлений рекомендуются последовательные тесты."
+  },
+  {
+    "id": "ru-spbst-st-mtsws-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "МТС",
+    "city": "Санкт-Петербург",
+    "host": "spbst.st.mtsws.net",
+    "port": 3333,
+    "ports": [
+      3333
+    ],
+    "engine": "Iperf3",
+    "source": "https://lg.mtu.ru/list.html",
+    "provenance": "Официальный список МТС; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp"
+    ],
+    "notes": "МТС, порт 3333. Для двух направлений рекомендуются последовательные тесты."
+  },
+  {
+    "id": "ru-sahst-st-mtsws-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "МТС",
+    "city": "Сахалин",
+    "host": "sahst.st.mtsws.net",
+    "port": 3333,
+    "ports": [
+      3333
+    ],
+    "engine": "Iperf3",
+    "source": "https://lg.mtu.ru/list.html",
+    "provenance": "Официальный список МТС; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp"
+    ],
+    "notes": "МТС, порт 3333. Для двух направлений рекомендуются последовательные тесты."
+  },
+  {
+    "id": "ru-volst-st-mtsws-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "МТС",
+    "city": "Вологда",
+    "host": "volst.st.mtsws.net",
+    "port": 3333,
+    "ports": [
+      3333
+    ],
+    "engine": "Iperf3",
+    "source": "https://lg.mtu.ru/list.html",
+    "provenance": "Официальный список МТС; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp"
+    ],
+    "notes": "МТС, порт 3333. Для двух направлений рекомендуются последовательные тесты."
+  },
+  {
+    "id": "ru-yarst-st-mtsws-net",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "МТС",
+    "city": "Ярославль",
+    "host": "yarst.st.mtsws.net",
+    "port": 3333,
+    "ports": [
+      3333
+    ],
+    "engine": "Iperf3",
+    "source": "https://lg.mtu.ru/list.html",
+    "provenance": "Официальный список МТС; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Upload",
+      "Download",
+      "Bidirectional"
+    ],
+    "permittedTransports": [
+      "Tcp"
+    ],
+    "notes": "МТС, порт 3333. Для двух направлений рекомендуются последовательные тесты."
+  },
+  {
+    "id": "rastrnet-iperf3",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "RastrNet",
+    "city": "Красноярск",
+    "host": "speedtest.rastrnet.ru",
+    "port": 5201,
+    "ports": [
+      5201
+    ],
+    "engine": "Iperf3",
+    "source": "https://speedtest.rastrnet.ru/",
+    "provenance": "Опубликован оператором; доступность проверяется при запуске",
+    "permittedDirections": [
+      "Download",
+      "Upload"
+    ],
+    "permittedTransports": [
+      "Tcp"
+    ],
+    "notes": "Оператор публикует iPerf3 download на 5201."
+  },
+  {
+    "id": "selectel-https",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Selectel",
+    "city": "Россия",
+    "host": "speedtest.selectel.ru",
+    "port": 443,
+    "engine": "Http",
+    "source": "https://selectel.ru/speedtest/",
+    "provenance": "Опубликован оператором; ответ с тестовыми данными проверен 12.10.2026",
+    "permittedDirections": [
+      "Download"
+    ],
+    "permittedTransports": [
+      "Tcp"
+    ],
+    "notes": "Только загрузка: оператор публикует тестовые файлы. Максимум 512 МиБ.",
+    "http": {
+      "downloadUrl": "https://speedtest.selectel.ru/100MB",
+      "uploadUrl": null,
+      "protocol": "File",
+      "uploadMethod": "POST"
+    }
+  },
+  {
+    "id": "hostkey-https",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "HOSTKEY",
+    "city": "Москва",
+    "host": "spd-rudp.hostkey.ru",
+    "port": 443,
+    "engine": "Http",
+    "source": "https://hostkey.ru/documentation/technical/exist_server_using/speedtest/",
+    "provenance": "Опубликован оператором; ответ с тестовыми данными проверен 12.10.2026",
+    "permittedDirections": [
+      "Download",
+      "Upload"
+    ],
+    "permittedTransports": [
+      "Tcp"
+    ],
+    "notes": "Загрузка и отдача через HTTP. Максимум 512 МиБ на направление.",
+    "http": {
+      "downloadUrl": "https://spd-rudp.hostkey.ru/garbage?ckSize=64",
+      "uploadUrl": "https://spd-rudp.hostkey.ru/empty",
+      "protocol": "LibreSpeed",
+      "uploadMethod": "POST"
+    }
+  },
+  {
+    "id": "hostkey-http",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "HOSTKEY",
+    "city": "Москва",
+    "host": "spd-rudp.hostkey.ru",
+    "port": 80,
+    "engine": "Http",
+    "source": "https://speedtest.hostkey.ru/servers.json",
+    "provenance": "Опубликован оператором; ответ с тестовыми данными проверен 12.10.2026",
+    "permittedDirections": [
+      "Download",
+      "Upload"
+    ],
+    "permittedTransports": [
+      "Tcp"
+    ],
+    "notes": "Загрузка и отдача через HTTP. Максимум 512 МиБ на направление.",
+    "http": {
+      "downloadUrl": "http://spd-rudp.hostkey.ru/garbage?ckSize=64",
+      "uploadUrl": "http://spd-rudp.hostkey.ru/empty",
+      "protocol": "LibreSpeed",
+      "uploadMethod": "POST"
+    }
+  },
+  {
+    "id": "rastrnet-https",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "RastrNet",
+    "city": "Красноярск",
+    "host": "speedtest.rastrnet.ru",
+    "port": 443,
+    "engine": "Http",
+    "source": "https://speedtest.rastrnet.ru/",
+    "provenance": "Опубликован оператором; ответ с тестовыми данными проверен 12.10.2026",
+    "permittedDirections": [
+      "Download"
+    ],
+    "permittedTransports": [
+      "Tcp"
+    ],
+    "notes": "Только загрузка: оператор публикует тестовые файлы. Максимум 512 МиБ.",
+    "http": {
+      "downloadUrl": "https://speedtest.rastrnet.ru/100MB.zip",
+      "uploadUrl": null,
+      "protocol": "File",
+      "uploadMethod": "POST"
+    }
+  },
+  {
+    "id": "beeline-iperf2",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Билайн",
+    "city": "Сеть оператора",
+    "host": "speedcheck.gldn.net",
+    "port": 5001,
+    "ports": [
+      5001
+    ],
+    "engine": "Iperf2",
+    "source": "Предоставленный пользователем архив Iperf speedcheck.gldn.net.zip",
+    "provenance": "8 командных профилей из архива; приём подтверждается Server Report",
+    "permittedDirections": [
+      "Upload",
+      "Download"
+    ],
+    "permittedTransports": [
+      "Udp"
+    ],
+    "notes": "Один адрес, восемь профилей отдачи: 1/5/10/20 потоков, 100/1000 Мбит/с на поток. После профилей проверяется reverse. TX без ACK не считается скоростью соединения.",
+    "iperf2Profiles": [
+      { "streams": 1, "bitsPerSecondPerStream": 100000000 },
+      { "streams": 5, "bitsPerSecondPerStream": 100000000 },
+      { "streams": 10, "bitsPerSecondPerStream": 100000000 },
+      { "streams": 20, "bitsPerSecondPerStream": 100000000 },
+      { "streams": 1, "bitsPerSecondPerStream": 1000000000 },
+      { "streams": 5, "bitsPerSecondPerStream": 1000000000 },
+      { "streams": 10, "bitsPerSecondPerStream": 1000000000 },
+      { "streams": 20, "bitsPerSecondPerStream": 1000000000 }
+    ]
+  }
+]
