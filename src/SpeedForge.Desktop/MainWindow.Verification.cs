@@ -213,6 +213,56 @@ public partial class MainWindow
             foreach (int page in new[] { 1, 2, 3, 4 }) { Navigate(page); UpdateLayout(); SavePreview(Path.Combine(directory, "page-" + page + ".png")); }
             Navigate(0); return Task.CompletedTask;
         });
+        await Test("GeoIP: IP виден, Москва выбирается автоматически", async () =>
+        {
+            _verificationServer = null; CustomHost.Clear(); CustomUrl.Clear(); GeoIpCheck.IsChecked = true;
+            SelectServer(_servers.Single(x => x.Id == "rastrnet-https"));
+            await RefreshNetworkAsync((_,_) => Task.FromResult(new NetworkIdentity("8.8.8.8","8.8.8.8","STUN","Moscow","Example",15169,new(55.75,37.61))));
+            Require(CurrentServer().City == "Москва" && ConnectionInfo.Text.Contains("8.8.8.8"), "IP скрыт или выбран неверный город");
+            SavePreview(Path.Combine(directory, "geoip-auto.png"));
+            WindowPreview.Save(this, Path.Combine(directory, "geoip-window.png"));
+        });
+        await Test("GeoIP: поздний результат сохраняет ручной сервер", async () =>
+        {
+            var response = new TaskCompletionSource<NetworkIdentity>();
+            var pending = RefreshNetworkAsync((_,_) => response.Task);
+            SelectServer(_servers.Single(x => x.Id == "rastrnet-https"));
+            response.SetResult(new("8.8.8.8","8.8.8.8","HTTPS","Moscow",Location:new(55.75,37.61)));
+            await pending;
+            Require(CurrentServer().Id == "rastrnet-https", "Геолокация перезаписала ручной выбор");
+        });
+        await Test("GeoIP: выключение сохраняется, внешний IP остаётся виден", async () =>
+        {
+            GeoIpCheck.IsChecked = false; string selected = CurrentServer().Id;
+            await RefreshNetworkAsync((enabled,_) => { Require(!enabled,"GeoIP не отключён"); return Task.FromResult(new NetworkIdentity("1.1.1.1",null,"HTTPS",Location:new(55.75,37.61))); });
+            Require(CurrentServer().Id == selected && ConnectionInfo.Text.Contains("1.1.1.1"), "Отключённая геолокация изменила сервер или скрыла IP");
+            var second = new MainWindow(_store.DirectoryPath, false);
+            Require(second.GeoIpCheck.IsChecked == false, "Настройка не восстановилась после запуска"); second.Close();
+        });
+        await Test("GeoIP: поздний ответ сохраняет сервер начатого теста", async () =>
+        {
+            GeoIpCheck.IsChecked = true; Configure(Http("stall"));
+            var selected = ServerCombo.SelectedItem;
+            var response = new TaskCompletionSource<NetworkIdentity>();
+            var pending = RefreshNetworkAsync((_,_) => response.Task);
+            RunButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            try
+            {
+                Require(_running != null, "Тест не запустился");
+                var city = NearestServer.Locations.Single(x => x.City == "Краснодар");
+                response.SetResult(new("8.8.8.8",null,"HTTPS",Location:new(city.Latitude,city.Longitude)));
+                await pending;
+                Require(ReferenceEquals(ServerCombo.SelectedItem,selected), "Геолокация изменила сервер во время передачи");
+            }
+            finally { _running?.Cancel(); if (_activeUiTask != null) await _activeUiTask; }
+            _verificationServer = null;
+        });
+        await Test("GeoIP: отсутствие сети сохраняет запуск теста", async () =>
+        {
+            GeoIpCheck.IsChecked = true; string selected = CurrentServer().Id;
+            await RefreshNetworkAsync((_,_) => Task.FromResult(new NetworkIdentity(null,null,"Unavailable")));
+            Require(CurrentServer().Id == selected && RunButton.IsEnabled && ConnectionInfo.Text.Contains("недоступен"), "Ошибка геолокации заблокировала приложение");
+        });
         await File.WriteAllTextAsync(Path.Combine(directory, "ui-summary.txt"), $"TOTAL={cases.Count}; PASS={cases.Count - failed}; FAIL={failed}");
         return failed == 0;
     }

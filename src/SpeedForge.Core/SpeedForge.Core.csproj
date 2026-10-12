@@ -7,6 +7,7 @@
   <ItemGroup>
     <EmbeddedResource Include="servers.json" />
     <EmbeddedResource Include="server-observations.json" />
+    <EmbeddedResource Include="city-locations.json" />
     <EmbeddedResource Include="Bundled/iperf3.zip" />
     <EmbeddedResource Include="Bundled/iperf3-hashes.json" />
     <EmbeddedResource Include="Bundled/iperf2.zip" />

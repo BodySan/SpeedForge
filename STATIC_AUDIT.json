@@ -1,7 +1,7 @@
 {
-  "checked_at_utc": "2026-10-12T15:12:39.884179+00:00",
+  "checked_at_utc": "2026-10-12T15:58:40.865666+00:00",
   "scope": "Static structure only, not build/test execution",
-  "source_count": 29,
+  "source_count": 33,
   "checks": 25,
   "passed": 25,
   "failed": 0,
@@ -9,7 +9,7 @@
     {
       "name": "C# source files",
       "pass_check": true,
-      "detail": "29"
+      "detail": "33"
     },
     {
       "name": "XML src\\SpeedForge.Desktop\\App.xaml",
@@ -59,7 +59,7 @@
     {
       "name": "All XAML event handlers exist",
       "pass_check": true,
-      "detail": "['Window_Closing', 'Filters_Changed', 'Filters_Changed', 'Filters_Changed', 'Server_Changed', 'Profile_Changed', 'Profile_Changed', 'Profile_Changed', 'Profile_Changed', 'Direction_Changed', 'Transport_Changed', 'Rate_Changed', 'ClearRate_Click', 'Custom_Changed', 'Custom_Changed', 'Custom_Changed', 'Custom_Changed', 'Probe_Click', 'Chart_SizeChanged', 'Run_Click', 'Cancel_Click', 'Refresh_Click', 'HistoryDebug_Click', 'TechnicalExport_Click', 'CatalogSearch_Changed', 'Catalog_DoubleClick', 'TrustIperf3_Click', 'TrustIperf2_Click', 'LicensesExport_Click', 'Compare_Click', 'DocsCatalog_Click', 'DocsMts_Click', 'DocsHostkey_Click', 'DocsSelectel_Click', 'DocsRastr_Click', 'Probe_Click', 'DebugExport_Click', 'DebugFolder_Click', 'DebugRuns_Changed']"
+      "detail": "['Window_Closing', 'Filters_Changed', 'Filters_Changed', 'Filters_Changed', 'Server_Changed', 'Profile_Changed', 'Profile_Changed', 'GeoIp_Changed', 'GeoIp_Changed', 'Profile_Changed', 'Profile_Changed', 'Direction_Changed', 'Transport_Changed', 'Rate_Changed', 'ClearRate_Click', 'Custom_Changed', 'Custom_Changed', 'Custom_Changed', 'Custom_Changed', 'Probe_Click', 'Chart_SizeChanged', 'Run_Click', 'Cancel_Click', 'Refresh_Click', 'HistoryDebug_Click', 'TechnicalExport_Click', 'CatalogSearch_Changed', 'Catalog_DoubleClick', 'TrustIperf3_Click', 'TrustIperf2_Click', 'LicensesExport_Click', 'Compare_Click', 'DocsCatalog_Click', 'DocsMts_Click', 'DocsHostkey_Click', 'DocsSelectel_Click', 'DocsRastr_Click', 'Probe_Click', 'DebugExport_Click', 'DebugFolder_Click', 'DebugRuns_Changed']"
     },
     {
       "name": "Catalog JSON",

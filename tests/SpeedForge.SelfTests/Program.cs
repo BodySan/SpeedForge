@@ -31,6 +31,7 @@ RunResult Result(TransportKind protocol = TransportKind.Tcp, TestDirection direc
 const string Good = """
 {"start":{"version":"iperf 3.22"},"intervals":[{"sum":{"start":0,"end":1,"bytes":1250000,"bits_per_second":10000000}}],"end":{"sum_sent":{"bytes":10000000,"bits_per_second":10000000,"retransmits":4},"sum_received":{"bytes":9000000,"bits_per_second":9000000}}}
 """;
+GeoIpTests.Register(Case);
 const string NoData = """
 {"end":{"sum_sent":{"bytes":0,"bits_per_second":0},"sum_received":{"bytes":0,"bits_per_second":0}}}
 """;

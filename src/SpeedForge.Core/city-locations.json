@@ -1,0 +1,290 @@
+[
+  {
+    "City": "Астрахань",
+    "Latitude": 46.34968,
+    "Longitude": 48.04076,
+    "GeoNamesId": 580497
+  },
+  {
+    "City": "Барнаул",
+    "Latitude": 53.36199,
+    "Longitude": 83.72786,
+    "GeoNamesId": 1510853
+  },
+  {
+    "City": "Брянск",
+    "Latitude": 53.27096,
+    "Longitude": 34.32143,
+    "GeoNamesId": 571476
+  },
+  {
+    "City": "Владивосток",
+    "Latitude": 43.10562,
+    "Longitude": 131.87353,
+    "GeoNamesId": 2013348
+  },
+  {
+    "City": "Владимир",
+    "Latitude": 56.13854,
+    "Longitude": 40.39976,
+    "GeoNamesId": 473247
+  },
+  {
+    "City": "Волгоград",
+    "Latitude": 48.71378,
+    "Longitude": 44.4976,
+    "GeoNamesId": 472757
+  },
+  {
+    "City": "Вологда",
+    "Latitude": 59.2239,
+    "Longitude": 39.88398,
+    "GeoNamesId": 472459
+  },
+  {
+    "City": "Воронеж",
+    "Latitude": 51.66833,
+    "Longitude": 39.19204,
+    "GeoNamesId": 472045
+  },
+  {
+    "City": "Екатеринбург",
+    "Latitude": 56.85733,
+    "Longitude": 60.61529,
+    "GeoNamesId": 1486209
+  },
+  {
+    "City": "Ижевск",
+    "Latitude": 56.85225,
+    "Longitude": 53.19862,
+    "GeoNamesId": 554840
+  },
+  {
+    "City": "Иркутск",
+    "Latitude": 52.29566,
+    "Longitude": 104.29076,
+    "GeoNamesId": 2023469
+  },
+  {
+    "City": "Йошкар-Ола",
+    "Latitude": 56.63877,
+    "Longitude": 47.89078,
+    "GeoNamesId": 466806
+  },
+  {
+    "City": "Казань",
+    "Latitude": 55.78874,
+    "Longitude": 49.12214,
+    "GeoNamesId": 551487
+  },
+  {
+    "City": "Киров",
+    "Latitude": 58.59809,
+    "Longitude": 49.65783,
+    "GeoNamesId": 548408
+  },
+  {
+    "City": "Краснодар",
+    "Latitude": 45.04534,
+    "Longitude": 38.98178,
+    "GeoNamesId": 542420
+  },
+  {
+    "City": "Красноярск",
+    "Latitude": 56.03742,
+    "Longitude": 92.93136,
+    "GeoNamesId": 1502026
+  },
+  {
+    "City": "Курган",
+    "Latitude": 55.44905,
+    "Longitude": 65.34344,
+    "GeoNamesId": 1501321
+  },
+  {
+    "City": "Курск",
+    "Latitude": 51.72689,
+    "Longitude": 36.18457,
+    "GeoNamesId": 538560
+  },
+  {
+    "City": "Липецк",
+    "Latitude": 52.5876,
+    "Longitude": 39.55151,
+    "GeoNamesId": 535121
+  },
+  {
+    "City": "Магнитогорск",
+    "Latitude": 53.39808,
+    "Longitude": 59.0066,
+    "GeoNamesId": 532288
+  },
+  {
+    "City": "Москва",
+    "Latitude": 55.75204,
+    "Longitude": 37.61781,
+    "GeoNamesId": 524901
+  },
+  {
+    "City": "Набережные Челны",
+    "Latitude": 55.73718,
+    "Longitude": 52.41961,
+    "GeoNamesId": 523750
+  },
+  {
+    "City": "Нижний Новгород",
+    "Latitude": 56.32867,
+    "Longitude": 44.00205,
+    "GeoNamesId": 520555
+  },
+  {
+    "City": "Новокузнецк",
+    "Latitude": 53.75752,
+    "Longitude": 87.13599,
+    "GeoNamesId": 1496990
+  },
+  {
+    "City": "Новосибирск",
+    "Latitude": 55.02259,
+    "Longitude": 82.93175,
+    "GeoNamesId": 1496747
+  },
+  {
+    "City": "Норильск",
+    "Latitude": 69.3535,
+    "Longitude": 88.2027,
+    "GeoNamesId": 1497337
+  },
+  {
+    "City": "Омск",
+    "Latitude": 54.99244,
+    "Longitude": 73.36859,
+    "GeoNamesId": 1496153
+  },
+  {
+    "City": "Оренбург",
+    "Latitude": 51.76712,
+    "Longitude": 55.09883,
+    "GeoNamesId": 515003
+  },
+  {
+    "City": "Пенза",
+    "Latitude": 53.19568,
+    "Longitude": 45.01075,
+    "GeoNamesId": 511565
+  },
+  {
+    "City": "Пермь",
+    "Latitude": 58.01046,
+    "Longitude": 56.25017,
+    "GeoNamesId": 511196
+  },
+  {
+    "City": "Петропавловск-Камчатский",
+    "Latitude": 53.06393,
+    "Longitude": 158.62751,
+    "GeoNamesId": 2122104
+  },
+  {
+    "City": "Ростов-на-Дону",
+    "Latitude": 47.21997,
+    "Longitude": 39.70769,
+    "GeoNamesId": 501175
+  },
+  {
+    "City": "Рязань",
+    "Latitude": 54.62696,
+    "Longitude": 39.70415,
+    "GeoNamesId": 500096
+  },
+  {
+    "City": "Самара",
+    "Latitude": 53.20767,
+    "Longitude": 50.13553,
+    "GeoNamesId": 499099
+  },
+  {
+    "City": "Санкт-Петербург",
+    "Latitude": 59.93863,
+    "Longitude": 30.31413,
+    "GeoNamesId": 498817
+  },
+  {
+    "City": "Саранск",
+    "Latitude": 54.18485,
+    "Longitude": 45.17166,
+    "GeoNamesId": 498698
+  },
+  {
+    "City": "Саратов",
+    "Latitude": 51.54048,
+    "Longitude": 45.9901,
+    "GeoNamesId": 498677
+  },
+  {
+    "City": "Тверь",
+    "Latitude": 56.85836,
+    "Longitude": 35.90057,
+    "GeoNamesId": 480060
+  },
+  {
+    "City": "Томск",
+    "Latitude": 56.50049,
+    "Longitude": 84.98216,
+    "GeoNamesId": 1489425
+  },
+  {
+    "City": "Тула",
+    "Latitude": 54.19609,
+    "Longitude": 37.61822,
+    "GeoNamesId": 480562
+  },
+  {
+    "City": "Тюмень",
+    "Latitude": 57.15222,
+    "Longitude": 65.52722,
+    "GeoNamesId": 1488754
+  },
+  {
+    "City": "Ульяновск",
+    "Latitude": 54.32824,
+    "Longitude": 48.38657,
+    "GeoNamesId": 479123
+  },
+  {
+    "City": "Уфа",
+    "Latitude": 54.74306,
+    "Longitude": 55.96779,
+    "GeoNamesId": 479561
+  },
+  {
+    "City": "Чебоксары",
+    "Latitude": 56.13218,
+    "Longitude": 47.246,
+    "GeoNamesId": 569696
+  },
+  {
+    "City": "Челябинск",
+    "Latitude": 55.1611,
+    "Longitude": 61.42877,
+    "GeoNamesId": 1508291
+  },
+  {
+    "City": "Якутск",
+    "Latitude": 62.03114,
+    "Longitude": 129.72288,
+    "GeoNamesId": 2013159
+  },
+  {
+    "City": "Ярославль",
+    "Latitude": 57.62987,
+    "Longitude": 39.87368,
+    "GeoNamesId": 468902
+  },
+  {
+    "City": "Voronezh",
+    "Latitude": 51.66833,
+    "Longitude": 39.19204,
+    "GeoNamesId": 472045
+  }
+]

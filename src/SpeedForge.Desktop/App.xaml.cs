@@ -6,9 +6,9 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
-        string? dataRoot = e.Args.Length >= 2 && e.Args[0] is "--verify-ui" or "--verify-sandbox" or "--verify-reset"
+        string? dataRoot = e.Args.Length >= 2 && e.Args[0] is "--verify-ui" or "--verify-sandbox" or "--verify-reset" or "--verify-network"
             ? Path.Combine(Path.GetFullPath(e.Args[1]), "app-data") : null;
-        var window = new MainWindow(dataRoot);
+        var window = new MainWindow(dataRoot, e.Args.Length == 0 || e.Args[0] == "--verify-network");
         MainWindow = window;
         window.Loaded += async (_, _) =>
         {
@@ -28,6 +28,11 @@ public partial class App : Application
             else if (e.Args.Length >= 3 && e.Args[0] == "--verify-ui")
             {
                 try { Shutdown(await window.VerifyUiAsync(Path.GetFullPath(e.Args[1]), e.Args[2]) ? 0 : 1); }
+                catch (Exception ex) { Directory.CreateDirectory(e.Args[1]); File.WriteAllText(Path.Combine(e.Args[1], "fatal.txt"), ex.ToString()); Shutdown(2); }
+            }
+            else if (e.Args.Length >= 2 && e.Args[0] == "--verify-network")
+            {
+                try { Shutdown(await window.VerifyNetworkAsync(Path.GetFullPath(e.Args[1])) ? 0 : 1); }
                 catch (Exception ex) { Directory.CreateDirectory(e.Args[1]); File.WriteAllText(Path.Combine(e.Args[1], "fatal.txt"), ex.ToString()); Shutdown(2); }
             }
             else if (e.Args.Length >= 2 && e.Args[0] is "--verify-sandbox" or "--verify-reset")

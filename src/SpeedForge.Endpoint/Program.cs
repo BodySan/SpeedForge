@@ -27,7 +27,9 @@ app.Use(async (ctx, next) =>
         ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
         return;
     }
-    if (!await slots.WaitAsync(0))
+    // Allow completion of a preceding response before rejecting the next block.
+    // The simultaneous transfer cap remains two; the queue is bounded in time.
+    if (!await slots.WaitAsync(TimeSpan.FromMilliseconds(100), ctx.RequestAborted))
     {
         ctx.Response.StatusCode = StatusCodes.Status429TooManyRequests;
         return;

@@ -4,8 +4,8 @@
   "BuildErrors": 0,
   "BuildWarnings": 0,
   "Regression": {
-    "Total": 84,
-    "Passed": 84,
+    "Total": 93,
+    "Passed": 93,
     "Failed": 0
   },
   "Sandbox": {
@@ -14,15 +14,21 @@
     "Failed": 0
   },
   "UI": {
-    "Total": 26,
-    "Passed": 26,
+    "Total": 31,
+    "Passed": 31,
     "Failed": 0
   },
   "Iperf2RateProof": {
     "OfferedMbps": 1000,
-    "SenderMbps": 994.5,
-    "ReceiverMbps": 81.45,
+    "SenderMbps": 995.17,
+    "ReceiverMbps": 89.2,
     "ReceiverOnlyInCardAndChart": true
+  },
+  "LiveGeoIp": {
+    "IpDetected": true,
+    "CoordinatesDetected": true,
+    "AsnDetected": true,
+    "Source": "HTTPS"
   },
   "LiveBeeline": {
     "UploadProfilesCompleted": 8,

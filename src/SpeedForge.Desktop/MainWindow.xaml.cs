@@ -35,12 +35,13 @@ public partial class MainWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     { base.OnSourceInitialized(e); NativeWindowTheme.Apply(this); }
 
-    public MainWindow(string? dataRoot = null)
+    public MainWindow(string? dataRoot = null, bool loadNetworkOnStart = true)
     {
         _trusted = new(dataRoot);
         _store = new(dataRoot);
         InitializeComponent();
-        Loaded += (_, _) => NativeWindowTheme.Apply(this);
+        LoadNetworkPreferences(loadNetworkOnStart);
+        Loaded += (_, _) => { NativeWindowTheme.Apply(this); if (_loadNetworkOnStart) _networkStartupTask = RefreshNetworkAsync(); };
         _coordinator = new RunCoordinator(_trusted, _store);
         _initialized = true;
         Refilter(true);
@@ -89,10 +90,11 @@ public partial class MainWindow : Window
         var id = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(key))[..24].ToLowerInvariant();
         return ServerCatalog.Custom(host, port, engine) with { Id = "custom-" + id };
     }
-    private void Custom_Changed(object sender, RoutedEventArgs e) { if (_initialized) UpdateProfile(); }
+    private void Custom_Changed(object sender, RoutedEventArgs e) { if (_initialized) { _serverSelectionGeneration++; UpdateProfile(); } }
     private void Filters_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (!_initialized || _filtersUpdating) return;
+        if (!_applyingNetworkSelection) _serverSelectionGeneration++;
         Refilter(sender == MethodFilter);
     }
     private void Refilter(bool reset)
@@ -129,7 +131,8 @@ public partial class MainWindow : Window
         ServerCombo.SelectedItem = entry;
         UpdateProfile();
     }
-    private void Server_Changed(object sender, SelectionChangedEventArgs e) { if (_initialized) UpdateProfile(); }
+    private void Server_Changed(object sender, SelectionChangedEventArgs e)
+    { if (_initialized) { if (!_applyingNetworkSelection && !_filtersUpdating) _serverSelectionGeneration++; UpdateProfile(); } }
     private void Profile_Changed(object sender, RoutedEventArgs e) { if (_initialized) UpdateProfile(); }
     private void UpdateProfile()
     {
