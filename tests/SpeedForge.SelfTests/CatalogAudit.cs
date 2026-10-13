@@ -5,19 +5,24 @@ using System.Text.Encodings.Web;
 
 internal static class CatalogAudit
 {
-    public static async Task<int> RunAsync(string directory, bool udp = false)
+    public static async Task<int> RunAsync(string directory, bool udp = false, string? only = null)
     {
         Directory.CreateDirectory(directory);
         var rows = new ConcurrentBag<AuditRow>();
         int completed = 0;
-        var servers = ServerCatalog.LoadPublished().Where(x => !udp || x.Engine == EngineKind.Iperf3).ToArray();
-        await Parallel.ForEachAsync(servers, new ParallelOptions { MaxDegreeOfParallelism = 2 }, async (server, ct) =>
+        var selected = only?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToHashSet(StringComparer.Ordinal);
+        var servers = ServerCatalog.LoadPublished().Where(x => (!udp || x.Engine == EngineKind.Iperf3)
+            && (selected == null || selected.Contains(x.Id))).ToArray();
+        if (servers.Length == 0 || selected != null && selected.Count != servers.Length) throw new ArgumentException("Неизвестная запись каталога");
+        // Sequential runs give each server the whole client link.
+        await Parallel.ForEachAsync(servers, new ParallelOptions { MaxDegreeOfParallelism = 1 }, async (server, ct) =>
         {
             var coordinator = new RunCoordinator(new TrustedTools(), new RunStore(Path.Combine(directory, server.Id)));
-            var options = new TestOptions(DurationSeconds: 3, ParallelStreams: 1, MeasureLatency: false,
+            var options = new TestOptions(DurationSeconds: 8, ParallelStreams: 4, MeasureLatency: true,
                 Transport: udp || server.Engine == EngineKind.Iperf2 ? TransportKind.Udp : TransportKind.Tcp,
-                BandwidthLimitBitsPerSecond: 10_000_000,
-                TimeoutSeconds: 12 + Math.Max(0, Math.Min(16, server.Ports.Distinct().Count()) - 1) * 3);
+                BandwidthLimitBitsPerSecond: 0,
+                TimeoutSeconds: null);
+            options = options with { TimeoutSeconds = RunTiming.RunSeconds(server, options) };
             // HTTP profiles without an upload endpoint cannot exercise that direction.
             var results = await DirectionalTest.RunAsync(server, options, true,
                 next => coordinator.RunAsync(server, next, null, null, ct), ct);
@@ -43,7 +48,7 @@ internal static class CatalogAudit
         await File.WriteAllTextAsync(Path.Combine(directory, "catalog-results.json"), JsonSerializer.Serialize(ordered, Json));
         await File.WriteAllTextAsync(Path.Combine(directory, "catalog-summary.md"),
             "# Проверка направлений российских серверов\n\n" +
-            "Дата: " + DateTimeOffset.Now.ToString("O") + ". 3 секунды, 1 поток, общий лимит 10 Мбит/с; два сервера одновременно. Это проверка передачи данных, а не измерение максимальной скорости.\n\n" +
+            "Дата: " + DateTimeOffset.Now.ToString("O") + ". 8 секунд, 4 потока, без ограничения скорости; серверы проверены последовательно. Билайн — 12 отдельных профилей нагрузки. Значения относятся к этому подключению и времени проверки.\n\n" +
             "«Подтверждено только одно направление» описывает наблюдение с этого ПК. Ошибка или занятость не доказывает постоянного запрета другого направления.\n\n" +
             "| Сервер | Метод | Первый запуск | Повтор | На ПК | С ПК |\n|---|---|---|---|---|---|\n" +
             string.Join('\n', ordered.Select(x => $"| {x.Host} | {x.Engine} | {x.Observation.Description} | {x.Repeat?.Description ?? "—"} | {Description(x.Results, TestDirection.Download)} | {Description(x.Results, TestDirection.Upload)} |")));

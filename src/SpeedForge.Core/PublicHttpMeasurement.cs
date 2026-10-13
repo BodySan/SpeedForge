@@ -9,7 +9,7 @@ namespace SpeedForge.Core;
 /// <summary>Bounded tests against published file and LibreSpeed endpoints.</summary>
 public sealed class PublicHttpMeasurement
 {
-    public const long MaxBytes = 512L * 1_048_576;
+    public const long MaxBytes = 7_500_000_000;
     public async Task ExecuteAsync(ServerEntry server, TestOptions options, IPAddress ip,
         RunResult run, CancellationToken ct, IProgress<MeasurementProgress>? live = null)
     {
@@ -93,7 +93,7 @@ public sealed class PublicHttpMeasurement
         if (run.Status != RunStatus.Partial) run.Status = RunStatus.Measured;
         run.MetricOrigin = $"{uri.Scheme.ToUpperInvariant()} {profile.Protocol}: " + (options.Direction == TestDirection.Download ? "байты, полученные клиентом" : "отправленные блоки, сервер вернул 2xx");
         run.Limitations.Add("HTTP и iPerf используют разные методики; результат относится к выбранной точке");
-        if (state.Bytes >= MaxBytes) run.Limitations.Add("Достигнут предел полезного трафика 512 МиБ");
+        if (state.Bytes >= MaxBytes) run.Limitations.Add("Достигнут предел полезного трафика 7,5 ГБ; скорость рассчитана по фактическому времени передачи");
         live?.Report(new(options.Direction, seconds, run.Mbps.Value, measured));
 
         async Task TransferAsync()
@@ -125,7 +125,7 @@ public sealed class PublicHttpMeasurement
                             received += read;
                             await state.AccountAsync(read, stop.Token);
                         }
-                        if (received == 0) throw new InvalidDataException("Сервер вернул пустой файл");
+                        if (received == 0 && !stop.IsCancellationRequested) throw new InvalidDataException("Сервер вернул пустой файл");
                     }
                     else
                     {
@@ -165,7 +165,7 @@ public sealed class PublicHttpMeasurement
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme is not ("https" or "http")
             || !string.IsNullOrEmpty(uri.UserInfo) || !string.IsNullOrEmpty(uri.Fragment)
-            || !uri.Host.Equals(server.Host, StringComparison.OrdinalIgnoreCase) || uri.Port != server.Port)
+            || !uri.Host.Trim('[', ']').Equals(server.Host.Trim('[', ']'), StringComparison.OrdinalIgnoreCase) || uri.Port != server.Port)
             throw new TargetRejectedException("HTTP URL должен указывать на выбранный сервер и порт");
         return uri;
     }

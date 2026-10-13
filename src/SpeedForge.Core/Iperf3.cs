@@ -112,23 +112,39 @@ public static class Iperf3Parser
             if (run.Direction == TestDirection.Bidirectional)
             {
                 var reverseReceiver = Try(end.Value, "sum_received_bidir_reverse");
-                run.UploadMbps = run.ReceiverMbps;
-                run.DownloadMbps = Mbps(reverseReceiver);
+                var upload = run.ReceiverMbps;
+                var download = Mbps(reverseReceiver);
+                run.UploadReceiverBytes = run.ReceiverBytes;
+                run.DownloadReceiverBytes = Long(reverseReceiver, "bytes");
                 run.Limitations.Add("Два направления измерялись одновременно: результат не эквивалентен последовательным тестам");
                 run.MetricOrigin = "iperf3 --bidir, приёмные суммы по направлениям";
-                if (run.DownloadMbps is not > 0 || run.UploadMbps is not > 0)
+                if (download is null || upload is null
+                    || run.DownloadReceiverBytes is null || run.UploadReceiverBytes is null)
                 {
                     run.Status = RunStatus.InsufficientData;
                     run.ErrorCode = "BIDIR_RECEIVER_MISSING";
                     return;
                 }
+                if (download <= 0 || upload <= 0
+                    || run.DownloadReceiverBytes <= 0 || run.UploadReceiverBytes <= 0)
+                {
+                    run.Status = RunStatus.NoData;
+                    run.ErrorCode = "ZERO_PAYLOAD";
+                    return;
+                }
+                if (download > 1_000_000 || upload > 1_000_000)
+                {
+                    run.Status = RunStatus.EngineError;
+                    run.ErrorCode = "IMPLAUSIBLE_RATE";
+                    return;
+                }
+                run.UploadMbps = upload;
+                run.DownloadMbps = download;
                 run.Mbps = null;
                 run.Status = RunStatus.Measured;
                 return;
             }
 
-            if (run.Direction == TestDirection.Download) run.DownloadMbps = run.ReceiverMbps;
-            else run.UploadMbps = run.ReceiverMbps;
             var pickedBytes = run.ReceiverBytes;
             var pickedRate = run.ReceiverMbps;
             if (pickedBytes is null || pickedRate is null)
@@ -150,6 +166,10 @@ public static class Iperf3Parser
                 run.ErrorCode = "IMPLAUSIBLE_RATE";
                 return;
             }
+            if (run.Direction == TestDirection.Download)
+            { run.DownloadMbps = pickedRate; run.DownloadReceiverBytes = pickedBytes; }
+            else
+            { run.UploadMbps = pickedRate; run.UploadReceiverBytes = pickedBytes; }
             run.Mbps = pickedRate;
             run.Status = RunStatus.Measured;
         }

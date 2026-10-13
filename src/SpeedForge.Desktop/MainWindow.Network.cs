@@ -27,6 +27,8 @@ public partial class MainWindow
                 if (document.RootElement.ValueKind == JsonValueKind.Object && document.RootElement.TryGetProperty("GeoIpEnabled", out var enabled)
                     && enabled.ValueKind is JsonValueKind.True or JsonValueKind.False)
                     GeoIpCheck.IsChecked = enabled.GetBoolean();
+                if (document.RootElement.ValueKind == JsonValueKind.Object && document.RootElement.TryGetProperty("BeelineTariffMbps", out var tariff) && tariff.ValueKind == JsonValueKind.Number && tariff.TryGetInt32(out int value) && BeelineTest.Tariffs.Contains(value))
+                    BeelineTariff.SelectedItem = value;
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException) { }
@@ -34,14 +36,19 @@ public partial class MainWindow
     private void GeoIp_Changed(object sender, RoutedEventArgs e)
     {
         if (!_initialized) return;
+        SaveNetworkPreferences();
+        if (_loadNetworkOnStart) _networkStartupTask = RefreshNetworkAsync();
+    }
+    private void SaveNetworkPreferences()
+    {
         try
         {
             string temp = _preferencesPath + ".tmp";
-            File.WriteAllText(temp, JsonSerializer.Serialize(new { GeoIpEnabled = GeoIpCheck.IsChecked == true }));
+            File.WriteAllText(temp, JsonSerializer.Serialize(new { GeoIpEnabled = GeoIpCheck.IsChecked == true,
+                BeelineTariffMbps = BeelineTariff.SelectedItem as int? }));
             File.Move(temp, _preferencesPath, true);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Log("Настройка геолокации не сохранена"); }
-        if (_loadNetworkOnStart) _networkStartupTask = RefreshNetworkAsync();
     }
     private async Task RefreshNetworkAsync(Func<bool,CancellationToken,Task<NetworkIdentity>>? lookup = null)
     {

@@ -1,7 +1,9 @@
 <Application x:Class="SpeedForge.Desktop.App" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 <Application.Resources>
 <Style TargetType="ToolTip"><Setter Property="Background" Value="#121C2A"/><Setter Property="Foreground" Value="#EAF1FC"/><Setter Property="BorderBrush" Value="#31435C"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Padding" Value="10"/><Setter Property="MaxWidth" Value="440"/></Style>
-<SolidColorBrush x:Key="Surface" Color="#121C2A"/><SolidColorBrush x:Key="Field" Color="#0C1420"/><SolidColorBrush x:Key="Line" Color="#243247"/><SolidColorBrush x:Key="Muted" Color="#95A8C1"/><SolidColorBrush x:Key="Accent" Color="#59DBC4"/>
+<SolidColorBrush x:Key="Surface" Color="#121C2A"/><SolidColorBrush x:Key="Field" Color="#0C1420"/><SolidColorBrush x:Key="Line" Color="#243247"/><SolidColorBrush x:Key="Muted" Color="#95A8C1"/><SolidColorBrush x:Key="Accent" Color="#82C6AE"/>
+<SolidColorBrush x:Key="QualityGood" Color="#82C6AE"/><SolidColorBrush x:Key="QualityModerate" Color="#D8B884"/><SolidColorBrush x:Key="QualityPoor" Color="#D99A9D"/><SolidColorBrush x:Key="QualityUnknown" Color="#95A6BC"/>
+<SolidColorBrush x:Key="DownloadTone" Color="#82C6AE"/><SolidColorBrush x:Key="UploadTone" Color="#B4ACD8"/><SolidColorBrush x:Key="LatencyTone" Color="#9DBAE5"/>
 <Style TargetType="TextBlock"><Setter Property="Foreground" Value="#EAF1FC"/><Setter Property="TextWrapping" Value="Wrap"/></Style>
 <Style TargetType="Control"><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="FontSize" Value="13"/><Setter Property="Foreground" Value="#EAF1FC"/></Style>
 <Style x:Key="Label" TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource Muted}"/><Setter Property="FontSize" Value="12"/><Setter Property="Margin" Value="0,0,0,7"/></Style>

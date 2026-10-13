@@ -1,7 +1,7 @@
 namespace SpeedForge.Core;
 
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DirectionVerdict>))]
-public enum DirectionVerdict { Both, DownloadObserved, UploadObserved, Unconfirmed, Cancelled }
+public enum DirectionVerdict { Both, DownloadObserved, UploadObserved, Unconfirmed, Cancelled, Sent }
 
 public sealed record DirectionObservation(DirectionVerdict Verdict, string Description)
 {
@@ -12,19 +12,22 @@ public sealed record DirectionObservation(DirectionVerdict Verdict, string Descr
         bool upload = runs.Any(x => Confirmed(x) && x.UploadMbps > 0);
         if (download && upload) return new(DirectionVerdict.Both, "Загрузка и отдача подтверждены");
         if (runs.Any(x => x.Status == RunStatus.Cancelled)) return new(DirectionVerdict.Cancelled, "Проверка остановлена");
+        if (runs.Any(x => x.Options.Iperf2SenderOnly && x.Status == RunStatus.Measured && x.SenderMbps > 0))
+            return new(DirectionVerdict.Sent, "UDP-отправка завершена");
         if (download) return new(DirectionVerdict.DownloadObserved, "Подтверждена загрузка на ПК; отдача не подтверждена");
         if (upload) return new(DirectionVerdict.UploadObserved, "Подтверждена отдача с ПК; загрузка не подтверждена");
         return new(DirectionVerdict.Unconfirmed, "Измерение не подтверждено — подробности в журнале");
     }
 
-    public static bool Confirmed(RunResult run) => run.Status == RunStatus.Measured
+    public static bool Confirmed(RunResult run) => (!run.Options.Iperf2SenderOnly || run.ReceiverBytes > 0 && run.ReceiverStreams == run.Options.ParallelStreams) && run.Status == RunStatus.Measured
         && (run.Mbps > 0 || run.DownloadMbps > 0 && run.UploadMbps > 0);
 }
 
 public static class DirectionalTest
 {
     public static TestDirection[] Plan(ServerEntry server, TestOptions options, bool automatic) =>
-        automatic ? server.Engine == EngineKind.Http && server.Http is { UploadUrl: null }
+        automatic ? BeelineTest.Applies(server) ? [TestDirection.Upload]
+            : server.Engine == EngineKind.Http && server.Http is { UploadUrl: null }
             ? [TestDirection.Download] : server.Engine == EngineKind.Iperf2
                 ? [TestDirection.Upload, TestDirection.Download] : [TestDirection.Download, TestDirection.Upload]
             : [options.Direction];
@@ -43,17 +46,17 @@ public static class DirectionalTest
                 var next = options with { Direction = TestDirection.Upload, Transport = TransportKind.Udp,
                     ParallelStreams = profile.Streams, Iperf2OfferedBitsPerSecondPerStream = profile.BitsPerSecondPerStream,
                     MeasureLatencyBefore = index == 0 && options.MeasureLatencyBefore,
-                    MeasureLatencyAfter = !automatic && index == server.Iperf2Profiles.Length - 1 && options.MeasureLatencyAfter,
+                    MeasureLatencyAfter = (!automatic || BeelineTest.Applies(server)) && index == server.Iperf2Profiles.Length - 1 && options.MeasureLatencyAfter,
                     ProbeIperf2Client = index == 0 && server.Iperf2Legacy,
                     TimeoutSeconds = index == 0 && server.Iperf2Legacy ? Math.Min(120, Math.Max(options.TimeoutSeconds ?? 45,
-                        options.DurationSeconds * 2 + 15 + (options.MeasureLatency ? 4 : 0))) : options.TimeoutSeconds };
+                        RunTiming.CompatibilitySeconds(options with { MeasureLatencyAfter = !automatic && index == server.Iperf2Profiles.Length - 1 && options.MeasureLatencyAfter }))) : options.TimeoutSeconds };
                 next.Validate();
                 results.Add(await measure(next));
                 if (ct.IsCancellationRequested) return results;
                 if (index < server.Iperf2Profiles.Length - 1 || automatic) await Task.Delay(350, ct);
             }
             // The supplied archive contains upload profiles. Probe reverse separately with one stream.
-            if (automatic && !ct.IsCancellationRequested)
+            if (automatic && !BeelineTest.Applies(server) && !ct.IsCancellationRequested)
                 results.Add(await measure(options with { Direction = TestDirection.Download, ParallelStreams = 1,
                     Iperf2OfferedBitsPerSecondPerStream = 0, MeasureLatencyBefore = false }));
             return results;
@@ -65,9 +68,9 @@ public static class DirectionalTest
             results.Add(await measure(options with { Direction = plan[index],
                 MeasureLatencyBefore = index == 0 && options.MeasureLatencyBefore,
                 MeasureLatencyAfter = index == plan.Length - 1 && options.MeasureLatencyAfter,
-                ProbeIperf2Client = server.Iperf2Legacy && plan[index] == TestDirection.Upload,
+                ProbeIperf2Client = !options.Iperf2SenderOnly && server.Iperf2Legacy && plan[index] == TestDirection.Upload,
                 TimeoutSeconds = server.Iperf2Legacy && plan[index] == TestDirection.Upload ? Math.Min(120,
-                    Math.Max(options.TimeoutSeconds ?? 45, options.DurationSeconds * 2 + 15 + (options.MeasureLatency ? 4 : 0))) : options.TimeoutSeconds }));
+                    Math.Max(options.TimeoutSeconds ?? 45, RunTiming.CompatibilitySeconds(options))) : options.TimeoutSeconds }));
             if (ct.IsCancellationRequested) break;
             // Give public single-client servers time to finish their previous session.
             if (index < plan.Length - 1) await Task.Delay(350, ct);

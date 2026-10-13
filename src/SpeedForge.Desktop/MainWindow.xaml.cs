@@ -18,7 +18,8 @@ public partial class MainWindow : Window
     private readonly TrustedTools _trusted;
     private readonly RunStore _store;
     private readonly RunCoordinator _coordinator;
-    private readonly IReadOnlyList<ServerEntry> _servers = ServerCatalog.LoadPublished();
+    private IReadOnlyList<ServerEntry> _servers = ServerCatalog.LoadPublished();
+    private readonly ServerOverrides _serverOverrides;
     private CancellationTokenSource? _running;
     private bool _initialized, _filtersUpdating, _closing;
     private readonly List<MeasurementProgress> _chart = [];
@@ -31,6 +32,7 @@ public partial class MainWindow : Window
     private Task? _activeUiTask;
     private ServerEntry? _verificationServer;
     private int _displayGeneration;
+    private Stopwatch? _batchWatch;
 
     protected override void OnSourceInitialized(EventArgs e)
     { base.OnSourceInitialized(e); NativeWindowTheme.Apply(this); }
@@ -39,7 +41,12 @@ public partial class MainWindow : Window
     {
         _trusted = new(dataRoot);
         _store = new(dataRoot);
+        _serverOverrides = new(_store.DirectoryPath);
         InitializeComponent();
+        BeelineTariff.ItemsSource = BeelineTest.Tariffs;
+        try { _servers = _serverOverrides.Load(); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        { CatalogEditStatus.Text = "Адреса не загружены: " + ex.Message; }
         LoadNetworkPreferences(loadNetworkOnStart);
         Loaded += (_, _) => { NativeWindowTheme.Apply(this); if (_loadNetworkOnStart) _networkStartupTask = RefreshNetworkAsync(); };
         _coordinator = new RunCoordinator(_trusted, _store);
@@ -62,14 +69,16 @@ public partial class MainWindow : Window
     private TestOptions ReadOptions(TestDirection? direction = null)
     {
         var server = CurrentServer();
-        int additionalPorts = Math.Max(0, Math.Min(16, server.Ports.Distinct().Count()) - 1);
+        bool beeline = BeelineTest.Applies(server);
         var options = new TestOptions(direction ?? Choice<TestDirection>(DirectionCombo),
             Choice<TransportKind>(TransportCombo), Choice<IpFamily>(FamilyCombo),
-            Number(DurationBox, "длительность"), Number(ParallelBox, "потоки"), 1,
-            checked((long)Number(RateBox, "лимит скорости") * 1_000_000),
+            Number(DurationBox, "длительность"), beeline ? 1 : Number(ParallelBox, "потоки"), 1,
+            beeline ? 0 : checked((long)Number(RateBox, "лимит скорости") * 1_000_000),
             LatencyCheck.IsChecked == true, PrivateCheck.IsChecked == true, ExpertCheck.IsChecked == true,
-            Number(DurationBox, "длительность") + 12 + additionalPorts * 3 + (LatencyCheck.IsChecked == true ? 4 : 0),
+            null,
             UseIperf2Profiles: Iperf2ProfilesCheck.IsChecked == true);
+        if (BeelineTest.Applies(server)) options = ReadBeelineOptions(options);
+        options = options with { TimeoutSeconds = RunTiming.RunSeconds(server, options) };
         options.Validate();
         return options;
     }
@@ -152,7 +161,7 @@ public partial class MainWindow : Window
         bool archiveProfiles = server.Iperf2Profiles.Length > 0 && Iperf2ProfilesCheck.IsChecked == true;
         ParallelBox.IsEnabled = !archiveProfiles;
         if (archiveProfiles) ParallelBox.Text = "1";
-        if (newProfile && server.Iperf2Profiles.Length > 0) DurationBox.Text = "3";
+        if (newProfile && server.Iperf2Profiles.Length > 0) DurationBox.Text = "10";
         if (newProfile && server.Engine == EngineKind.Iperf3)
             TransportCombo.SelectedIndex = _iperf3Transport == TransportKind.Udp ? 1 : 0;
         bool upload = !http || server.Http == null || server.Http.UploadUrl != null;
@@ -170,6 +179,7 @@ public partial class MainWindow : Window
         if (http) TransportCombo.SelectedIndex = 0;
         ProbeButton.IsEnabled = _running == null && (!http || server.Http?.UploadUrl != null);
         UpdateObservations();
+        UpdateBeelineControls(server);
         UpdateRateSummary();
     }
     private void Transport_Changed(object sender, SelectionChangedEventArgs e)
@@ -190,8 +200,10 @@ public partial class MainWindow : Window
         try
         {
             var server = CurrentServer();
+            if (BeelineTest.Applies(server))
+            { RateSummary.Text = BeelineTariff.SelectedItem is int tariff ? $"Тариф: {tariff} Мбит/с · исходящая UDP-проверка" : "Выберите скорость тарифа в параметрах"; return; }
             if (server.Iperf2Profiles.Length > 0 && Iperf2ProfilesCheck.IsChecked == true)
-                RateSummary.Text += $"\nБилайн: 8 профилей по {DurationBox.Text.Trim()} с · для полного прогона из архива укажите 10 с";
+                RateSummary.Text += $"\nБилайн: {server.Iperf2Profiles.Length} профилей по {DurationBox.Text.Trim()} с · полный прогон — 10 с";
             if (valid && rate == 0 && server.Engine == EngineKind.Iperf2
                 && (BothCheck.IsChecked == true || Choice<TestDirection>(DirectionCombo) == TestDirection.Download))
                 RateSummary.Text += "\nОбратная передача проверяется отдельно";
@@ -205,6 +217,7 @@ public partial class MainWindow : Window
         RunButton.Content = value ? "Остановить" : "Проверить скорость";
         CancelButton.IsEnabled = value;
         OptionsPanel.IsEnabled = !value;
+        CatalogEditor.IsEnabled = !value;
         ClearRateButton.IsEnabled = !value && RateBox.Text.Trim() != "0";
         ProbeButton.IsEnabled = !value && (ServerCombo.SelectedItem is ServerEntry selected && (selected.Engine != EngineKind.Http || selected.Http?.UploadUrl != null));
         DebugProbeButton.IsEnabled = !value;
@@ -214,9 +227,14 @@ public partial class MainWindow : Window
     private void ResetResult()
     {
         _displayGeneration++;
-        DownloadValue.Text = UploadValue.Text = PingValue.Text = "—";
+        DownloadValue.Text = UploadValue.Text = PingValue.Text = JitterValue.Text = "—";
+        JitterSource.Text = "мс"; PacketLossValue.Text = "Потери: —"; LatencyContext.Text = "До начала передачи";
+        PingValue.Foreground = JitterValue.Foreground = PacketLossValue.Foreground = QualityBrush(MetricQuality.Unknown);
+        PingValue.ToolTip = JitterValue.ToolTip = PacketLossValue.ToolTip = null;
+        DownloadStatus.Foreground = UploadStatus.Foreground = QualityBrush(MetricQuality.Unknown);
         _lastResult = null;
         DownloadStatus.Text = UploadStatus.Text = "Не проверено";
+        UploadTxDetail.Text = ""; UploadTxDetail.Visibility = Visibility.Collapsed;
         PhaseTitle.Text = "Готово";
         SummaryText.Text = "Доступные направления определяются проверкой";
         TimeInfo.Text = "";
@@ -226,11 +244,13 @@ public partial class MainWindow : Window
         RenderChart();
         ProgressBox.Clear();
         _session.Clear(); DebugRuns.ItemsSource = null; DebugBox.Clear();
+        ApplySmallMetricColors();
     }
     private async Task Execute(Func<Task> action)
     {
         if (_running != null) { Log("Проверка уже выполняется"); return; }
         _running = new CancellationTokenSource();
+        _batchWatch = Stopwatch.StartNew();
         Busy(true);
         try { await action(); }
         catch (OperationCanceledException) { PhaseTitle.Text = "Проверка остановлена"; }
@@ -243,8 +263,10 @@ public partial class MainWindow : Window
         }
         finally
         {
+            _batchWatch?.Stop();
             _running.Dispose(); _running = null;
             Busy(false);
+            RenderChart();
             if (_closing) Close();
         }
     }
@@ -266,23 +288,37 @@ public partial class MainWindow : Window
             TimeInfo.Text = $"{sample.Seconds:F1} с · {sample.Bytes / 1_048_576.0:F1} МиБ" + (server.Engine == EngineKind.Http ? "" : " за интервал");
             RenderChart();
         });
-        var progress = new Progress<string>(message => { Log(message); PhaseTitle.Text = message; });
+        var progress = new Progress<string>(message => Log(message));
         Log($"{server.Group}, {server.City}, {options.Direction}, {options.ParallelStreams} потоков, {options.DurationSeconds} с");
         var watch = Stopwatch.StartNew();
-        string activity = options.Iperf2OfferedBitsPerSecondPerStream > 0
-            ? $"профиль {options.ParallelStreams}({options.Iperf2OfferedBitsPerSecondPerStream / 1_000_000})"
-            : options.Direction == TestDirection.Download ? "загрузка на ПК" : "отдача с ПК";
-        var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-        timer.Tick += (_, _) =>
+        var stage = new RunStageProgress(RunStage.Preparing);
+        void UpdateClock()
         {
-            if (server.Engine == EngineKind.Iperf2)
-                TimeInfo.Text = $"{watch.Elapsed.TotalSeconds:F0} с · {activity}" +
-                    (watch.Elapsed.TotalSeconds > options.DurationSeconds + (options.MeasureLatency && options.MeasureLatencyBefore ? 2 : 0)
-                        ? " · ждём отчёт сервера" : " · проверяем передачу");
-        };
+            double seconds = stage.ElapsedSeconds;
+            string elapsed = stage.Stage == RunStage.Transferring && stage.ExpectedSeconds.HasValue
+                ? $"{Math.Min(seconds, stage.ExpectedSeconds.Value):F1}/{stage.ExpectedSeconds:F0} с"
+                : $"{seconds:F1} с";
+            string title = options.Iperf2SenderOnly && stage.Stage == RunStage.ReceiverReport ? "Завершение отправки" : StageText(stage.Stage);
+            TimeInfo.Text = $"{watch.Elapsed.TotalSeconds:F1} с всего · {title} · {elapsed}";
+            TimeInfo.ToolTip = stage.ExpectedSeconds.HasValue ? $"Этап: {StageText(stage.Stage)}. Ожидаемая длительность/предел: {stage.ExpectedSeconds:F1} с.\nОбщий предел запуска: {options.TimeoutSeconds} с. {stage.Detail}" : stage.Detail;
+        }
+        var phases = new Progress<RunStageProgress>(value =>
+        {
+            if (generation != _displayGeneration) return;
+            stage = value; PhaseTitle.Text = options.Iperf2SenderOnly && value.Stage == RunStage.ReceiverReport ? "Завершение UDP-отправки" : StageText(value.Stage); UpdateClock();
+            if (_chart.Count == 0) ChartHint.Text = value.Stage is RunStage.Transferring or RunStage.ReceiverReport
+                ? options.Iperf2SenderOnly ? "UDP-отправка" : "Ожидаем данные приёмника" : "Подготавливаем проверку";
+            if (value.LocalSenderMbps.HasValue)
+            {
+                UploadTxDetail.Text = $"TX локально: {value.LocalSenderMbps:F1} Мбит/с";
+                UploadTxDetail.Visibility = Visibility.Visible;
+            }
+        });
+        var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        timer.Tick += (_, _) => UpdateClock();
         timer.Start();
         RunResult result;
-        try { result = await _coordinator.RunAsync(server, options, SessionKey.Password, progress, _running!.Token, live); }
+        try { result = await _coordinator.RunAsync(server, options, SessionKey.Password, progress, _running!.Token, live, phases); }
         finally { timer.Stop(); }
         _displayGeneration++;
         _lastResult = result;
@@ -295,10 +331,16 @@ public partial class MainWindow : Window
         }
         bool unconfirmedIperf2 = server.Engine == EngineKind.Iperf2 && result.ReceiverBytes == null;
         if (unconfirmedIperf2 && options.Direction == TestDirection.Upload) UploadValue.Text = "—";
-        if (server.Engine != EngineKind.Http && options.Transport == TransportKind.Udp
-            && options.Direction == TestDirection.Upload && result.ReceiverMbps is { } received)
+        if (options.Direction == TestDirection.Upload)
         {
-            _chart.Add(new(options.Direction, _chartOffset + options.DurationSeconds, received, result.ReceiverBytes ?? 0));
+            UploadTxDetail.Text = !options.Iperf2SenderOnly && unconfirmedIperf2 && result.SenderMbps.HasValue ? $"TX локально: {result.SenderMbps:F1} Мбит/с" : "";
+            UploadTxDetail.Visibility = UploadTxDetail.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+        if (server.Engine != EngineKind.Http && options.Transport == TransportKind.Udp
+            && options.Direction == TestDirection.Upload && result.Status is RunStatus.Measured or RunStatus.Partial
+            && result.ReceiverBytes > 0 && result.ReceiverMbps is > 0)
+        {
+            _chart.Add(new(options.Direction, _chartOffset + options.DurationSeconds, result.ReceiverMbps.Value, result.ReceiverBytes.Value));
             RenderChart();
         }
         if (server.Engine != EngineKind.Http && !unconfirmedIperf2 && !_chart.Any(x => x.Seconds > _chartOffset))
@@ -307,14 +349,16 @@ public partial class MainWindow : Window
                 _chart.Add(new(options.Direction, _chartOffset + interval.EndSeconds, interval.BitsPerSecond / 1_000_000, interval.Bytes));
             RenderChart();
         }
-        if (result.DownloadMbps is { } download) DownloadValue.Text = download.ToString("F1");
-        if (result.UploadMbps is { } upload) UploadValue.Text = upload.ToString("F1");
+        ApplyResultRates(result);
         string directionStatus = result.Status == RunStatus.Measured ? "Подтверждено" : result.Engine == EngineKind.Iperf2
             && result.Status == RunStatus.Partial && result.ReceiverBytes == null ? "TX: приём не подтверждён" : StatusText(result.Status);
         if (options.Direction is TestDirection.Download or TestDirection.Bidirectional) DownloadStatus.Text = directionStatus;
         if (options.Direction is TestDirection.Upload or TestDirection.Bidirectional) UploadStatus.Text = directionStatus;
-        var rtts = result.Latency.Where(x => x.Phase == ProbePhase.Idle && x.RttMilliseconds.HasValue).Select(x => x.RttMilliseconds!.Value).Order().ToArray();
-        if (rtts.Length > 0) PingValue.Text = rtts[rtts.Length / 2].ToString("F0");
+        var statusColor = QualityBrush(result.Status == RunStatus.Measured ? MetricQuality.Good
+            : result.Status == RunStatus.Partial ? MetricQuality.Moderate : MetricQuality.Poor);
+        if (options.Direction is TestDirection.Download or TestDirection.Bidirectional) DownloadStatus.Foreground = statusColor;
+        if (options.Direction is TestDirection.Upload or TestDirection.Bidirectional) UploadStatus.Foreground = statusColor;
+        UpdateQualityMetrics(result);
         _chartOffset += options.DurationSeconds;
         PhaseTitle.Text = StatusText(result.Status);
         TimeInfo.Text = $"{watch.Elapsed.TotalSeconds:F1} с · {result.StatusLabel}";
@@ -349,6 +393,25 @@ public partial class MainWindow : Window
     }
     private void ApplySessionSummary(ServerEntry server)
     {
+        if (_session.Any(x => x.Options.Iperf2SenderOnly))
+        {
+            var sent = _session.Last();
+            UploadTxDetail.Visibility = Visibility.Collapsed;
+            bool received = DirectionObservation.Confirmed(sent);
+            UploadStatus.Text = received ? "Приём сервером подтверждён" : sent.Status == RunStatus.Measured ? "Отправка завершена" : sent.StatusLabel;
+            UploadUnits.Text = received ? "Мбит/с · приём сервером" : "Мбит/с · отправлено с ПК";
+            if (received)
+            {
+                _chart.Clear(); _chart.Add(new(TestDirection.Upload, sent.Options.DurationSeconds, sent.ReceiverMbps!.Value, sent.ReceiverBytes!.Value));
+                ChartTitle.Text = "Приём UDP сервером"; RenderChart();
+            }
+            DownloadStatus.Text = "Не проверяется"; DownloadValue.Text = "—";
+            PhaseTitle.Text = sent.Status == RunStatus.Measured ? "UDP-отправка завершена" : sent.StatusLabel;
+            SummaryText.Text = received ? "Исходящая UDP-скорость подтверждена отчётом сервера." : "Показана отправка с ПК. Приём сервером и потери этой проверкой не подтверждены.";
+            ErrorPanel.Visibility = sent.Status is RunStatus.Measured or RunStatus.Cancelled ? Visibility.Collapsed : Visibility.Visible;
+            TimeInfo.Text = $"Весь прогон: {_batchWatch?.Elapsed.TotalSeconds:F1} с · 1 проверка";
+            return;
+        }
         var observation = DirectionObservation.From(_session);
         if (server.Engine == EngineKind.Iperf2 && server.Iperf2Profiles.Length > 0 && _session.Any(x => x.Direction == TestDirection.Upload))
         {
@@ -357,6 +420,9 @@ public partial class MainWindow : Window
             UploadValue.Text = uploads.Length > 0 ? uploads.Max(x => x.UploadMbps)!.Value.ToString("F1") : "—";
             UploadStatus.Text = uploads.Length > 0 ? $"Приём сервером · {uploads.Length} профилей подтверждено"
                 : _session.Any(x => x.SenderMbps > 0) ? "TX: приём не подтверждён" : "Приём не подтверждён";
+            UploadStatus.Foreground = QualityBrush(uploads.Length > 0 ? MetricQuality.Good : MetricQuality.Moderate);
+            if (uploads.Length > 0) UpdateQualityMetrics(uploads.MaxBy(x => x.UploadMbps)!);
+            if (uploads.Length > 0) { UploadTxDetail.Text = ""; UploadTxDetail.Visibility = Visibility.Collapsed; }
         }
         PhaseTitle.Text = observation.Description;
         if (server.Engine == EngineKind.Http && server.Http is { UploadUrl: null })
@@ -366,9 +432,53 @@ public partial class MainWindow : Window
         }
         SummaryText.Text = _session.Count > 2 ? $"Проверено профилей отдачи: {_session.Count(x => x.Direction == TestDirection.Upload)} · итог по лучшему подтверждённому приёму"
             : string.Join(" · ", _session.Select(x => (x.Direction == TestDirection.Download ? "↓ " : "↑ ") + StatusText(x.Status)));
+        if (server.Engine == EngineKind.Iperf2 && observation.Verdict == DirectionVerdict.Unconfirmed
+            && _session.Any(x => x.Direction == TestDirection.Upload && x.SenderBytes > 0))
+        {
+            PhaseTitle.Text = "UDP отправлен · отчёт сервера не получен";
+            SummaryText.Text = "Локальный TX показан отдельно. Скорость приёма, потери и UDP-джиттер неизвестны.";
+            ErrorPanel.Visibility = Visibility.Collapsed;
+        }
         // Per-direction cards preserve failures; keep the main screen compact after a usable measurement.
         if (observation.Verdict is DirectionVerdict.Both or DirectionVerdict.DownloadObserved or DirectionVerdict.UploadObserved)
             ErrorPanel.Visibility = Visibility.Collapsed;
+        if (_batchWatch != null) TimeInfo.Text = $"Весь прогон: {_batchWatch.Elapsed.TotalSeconds:F1} с · {_session.Count} проверок";
+    }
+    private static string StageText(RunStage stage) => stage switch
+    {
+        RunStage.Preparing => "Подготовка и адрес сервера", RunStage.LatencyBefore => "Пинг до нагрузки",
+        RunStage.ToolCheck => "Проверка компонентов", RunStage.VersionCheck => "Версия измерителя",
+        RunStage.Connecting => "Соединение", RunStage.Transferring => "Передача данных",
+        RunStage.ReceiverReport => "Итоговый отчёт", RunStage.LatencyAfter => "Пинг после нагрузки",
+        RunStage.Saving => "Сохранение результата", RunStage.Finished => "Завершено", _ => "Соединение и передача"
+    };
+    private static Brush QualityBrush(MetricQuality quality) => (Brush)Application.Current.FindResource(quality switch
+    {
+        MetricQuality.Good => "QualityGood", MetricQuality.Moderate => "QualityModerate",
+        MetricQuality.Poor => "QualityPoor", _ => "QualityUnknown"
+    });
+    private void UpdateQualityMetrics(RunResult result)
+    {
+        var baseline = _session.LastOrDefault(x => x.ProfileId == result.ProfileId && x.ResolvedIp == result.ResolvedIp
+            && x.Latency.Any(sample => sample.Phase == ProbePhase.Idle));
+        var idle = (baseline ?? result).Latency.Where(x => x.Phase == ProbePhase.Idle).ToArray();
+        double? ping = LatencyStatistics.Median(idle, ProbePhase.Idle);
+        PingValue.Text = ping?.ToString("F1") ?? "—";
+        PingValue.Foreground = QualityBrush(LatencyStatistics.PingQuality(ping));
+        PingValue.ToolTip = "Медиана ICMP до нагрузки. Цвет: до 50 мс / до 100 мс / выше. Это ориентиры интерфейса.";
+        bool udp = result.Transport == TransportKind.Udp && result.ReceiverBytes.HasValue;
+        double? jitter = udp ? result.JitterMilliseconds : LatencyStatistics.Jitter(idle, ProbePhase.Idle);
+        JitterValue.Text = jitter?.ToString("F1") ?? "—";
+        JitterValue.Foreground = QualityBrush(LatencyStatistics.JitterQuality(jitter));
+        JitterSource.Text = udp ? "мс · UDP" : "мс · ICMP";
+        JitterValue.ToolTip = (udp ? $"Из отчёта приёмника UDP · {result.DirectionLabel}." : "Среднее изменение между соседними ICMP-ответами до нагрузки.")
+            + " Цвет: до 5 мс / до 20 мс / выше. Для отсутствующих данных показано —.";
+        double? loss = result.Transport == TransportKind.Udp && result.ReceiverBytes.HasValue ? result.LostPercent : null;
+        PacketLossValue.Text = loss.HasValue ? $"Потери UDP: {loss:F2}%" : "Потери UDP: —";
+        PacketLossValue.Foreground = QualityBrush(LatencyStatistics.LossQuality(loss));
+        PacketLossValue.ToolTip = "По отчёту приёмника UDP: 0% — зелёный, до 1% — жёлтый, выше — красный. Без отчёта значение неизвестно.";
+        LatencyContext.Text = udp ? $"UDP · {result.DirectionLabel}" : "ICMP · до нагрузки";
+        ApplySmallMetricColors();
     }
     private async void Compare_Click(object sender, RoutedEventArgs e)
     { _activeUiTask = CompareSelectedAsync(); await _activeUiTask; }
@@ -386,9 +496,11 @@ public partial class MainWindow : Window
         if (_running!.IsCancellationRequested) return;
         var transport = second.Engine == EngineKind.Http ? TransportKind.Tcp : second.Engine == EngineKind.Iperf2 ? TransportKind.Udp
             : first.Engine == EngineKind.Iperf3 ? options.Transport : TransportKind.Tcp;
-        int secondDeadline = options.DurationSeconds + 12 + (options.MeasureLatency ? 4 : 0)
-            + Math.Max(0, Math.Min(16, second.Ports.Distinct().Count()) - 1) * 3;
-        var b = await DirectionalTest.RunAsync(second, options with { Transport = transport, TimeoutSeconds = secondDeadline }, automatic,
+        var secondOptions = options with { Transport = transport, Iperf2SenderOnly = false, ProbeIperf2Client = false,
+            BandwidthLimitBitsPerSecond = options.Iperf2SenderOnly ? 0 : options.BandwidthLimitBitsPerSecond };
+        if (BeelineTest.Applies(second)) secondOptions = ReadBeelineOptions(secondOptions);
+        secondOptions = secondOptions with { TimeoutSeconds = RunTiming.RunSeconds(second, secondOptions) };
+        var b = await DirectionalTest.RunAsync(second, secondOptions, automatic,
             next => RunSingle(second, next), _running.Token);
         PhaseTitle.Text = "Сравнение завершено";
         SummaryText.Text = $"{first.Group}: {DirectionObservation.From(a).Description} · {second.Group}: {DirectionObservation.From(b).Description}";
@@ -447,6 +559,12 @@ public partial class MainWindow : Window
         CustomHost.Clear(); CustomUrl.Clear(); SelectServer(entry); Navigate(0);
     }
     private void Chart_SizeChanged(object sender, SizeChangedEventArgs e) => RenderChart();
+    private void ApplyResultRates(RunResult result)
+    {
+        if (result.Status is not (RunStatus.Measured or RunStatus.Partial)) return;
+        if (result.DownloadMbps is > 0) DownloadValue.Text = result.DownloadMbps.Value.ToString("F1");
+        if (result.UploadMbps is > 0) UploadValue.Text = result.UploadMbps.Value.ToString("F1");
+    }
     private void RenderChart()
     {
         if (ChartCanvas == null) return;
@@ -454,21 +572,25 @@ public partial class MainWindow : Window
         double width = ChartCanvas.ActualWidth, height = ChartCanvas.ActualHeight;
         if (width < 50 || height < 50) return;
         if (_chart.Count == 0)
-        { ChartHint.Visibility = Visibility.Visible; PeakValue.Text = "Пик —"; return; }
+        {
+            ChartHint.Text = _running != null ? "Ожидаем данные приёмника"
+                : _lastResult != null ? "Нет подтверждённых данных для графика" : "Нажмите «Проверить скорость»";
+            ChartHint.Visibility = Visibility.Visible; PeakValue.Text = "Пик —"; return;
+        }
         double max = _chart.Count == 0 ? 100 : Math.Max(1, _chart.Max(x => x.Mbps)) * 1.15;
         double end = Math.Max(8, _chart.Select(x => x.Seconds).DefaultIfEmpty(0).Max());
         for (int i = 0; i < 5; i++)
         {
             double y = 10 + i * (height - 35) / 4;
             ChartCanvas.Children.Add(new Line { X1 = 38, X2 = width, Y1 = y, Y2 = y, Stroke = new SolidColorBrush(Color.FromRgb(35, 49, 68)), StrokeThickness = 1 });
-            var label = new TextBlock { Text = (max * (4 - i) / 4).ToString("F0"), FontSize = 10, Foreground = new SolidColorBrush(Color.FromRgb(104, 127, 157)) };
+            var label = new TextBlock { Text = (max * (4 - i) / 4).ToString("F0"), FontSize = 10, Foreground = (Brush)Application.Current.FindResource("LatencyTone") };
             Canvas.SetTop(label, y - 6); ChartCanvas.Children.Add(label);
         }
         foreach (var direction in new[] { TestDirection.Download, TestDirection.Upload })
         {
             var points = _chart.Where(x => x.Direction == direction).ToArray();
             if (points.Length == 0) continue;
-            var color = (Color)ColorConverter.ConvertFromString(direction == TestDirection.Download ? "#59DBC4" : "#A497FF");
+            var color = ((SolidColorBrush)Application.Current.FindResource(direction == TestDirection.Download ? "DownloadTone" : "UploadTone")).Color;
             var line = new Polyline { Stroke = new SolidColorBrush(color), StrokeThickness = 2.5, StrokeLineJoin = PenLineJoin.Round };
             foreach (var point in points)
                 line.Points.Add(new Point(38 + point.Seconds / end * (width - 42), 10 + (1 - point.Mbps / max) * (height - 35)));
@@ -483,7 +605,7 @@ public partial class MainWindow : Window
         }
         for (int i = 0; i < 5; i++)
         {
-            var label = new TextBlock { Text = $"{end * i / 4:F0} с", FontSize = 10, Foreground = new SolidColorBrush(Color.FromRgb(104, 127, 157)) };
+            var label = new TextBlock { Text = $"{end * i / 4:F0} с", FontSize = 10, Foreground = (Brush)Application.Current.FindResource("QualityModerate") };
             Canvas.SetLeft(label, Math.Min(width - 28, 38 + i * (width - 42) / 4));
             Canvas.SetTop(label, height - 13); ChartCanvas.Children.Add(label);
         }
@@ -558,7 +680,7 @@ public partial class MainWindow : Window
         try
         {
             var server = CurrentServer();
-            var runs = _store.Recent(500).Where(x => x.ProfileId == server.Id && x.Transport == Choice<TransportKind>(TransportCombo) && x.Status != RunStatus.Cancelled).ToArray();
+            var runs = _store.Recent(500).Where(x => x.ProfileId == server.Id && x.Host.Equals(server.Host, StringComparison.OrdinalIgnoreCase) && x.Transport == Choice<TransportKind>(TransportCombo) && x.Status != RunStatus.Cancelled).ToArray();
             string Description(TestDirection direction)
             {
                 var latest = runs.FirstOrDefault(x => x.Direction == direction);
@@ -567,7 +689,7 @@ public partial class MainWindow : Window
                 return $"{verdict} ({latest.Started:dd.MM HH:mm})";
             }
             ObservationText.Text = runs.Length == 0
-                ? $"Контрольная проверка {Choice<TransportKind>(TransportCombo)}: " + PublishedObservations.Describe(server.Id, Choice<TransportKind>(TransportCombo))
+                ? $"Контрольная проверка {Choice<TransportKind>(TransportCombo)}: " + (server.HasLocalOverride ? "адрес изменён, не проверено" : PublishedObservations.Describe(server.Id, Choice<TransportKind>(TransportCombo)))
                     + ". Доступность определяется заново при запуске."
                 : $"Последние тесты {Choice<TransportKind>(TransportCombo)}:\n↓ {Description(TestDirection.Download)}\n↑ {Description(TestDirection.Upload)}";
         }
@@ -617,7 +739,7 @@ public partial class MainWindow : Window
         SelectServer(_servers.First(x => x.Id == serverId));
         DurationBox.Text = "3"; ParallelBox.Text = "1"; LatencyCheck.IsChecked = false;
         bool beeline = serverId == "beeline-iperf2";
-        if (beeline) { RateBox.Text = "0"; LatencyCheck.IsChecked = true; }
+        if (beeline) { RateBox.Text = "0"; BeelineTariff.SelectedItem = 500; LatencyCheck.IsChecked = true; }
         else if (!rateSwitches && _servers.First(x => x.Id == serverId).Engine == EngineKind.Iperf2) RateBox.Text = "1";
         if (rateSwitches && ReadOptions().BandwidthLimitBitsPerSecond != 0)
             throw new InvalidOperationException("После переключения метода появился скрытый лимит");
@@ -646,17 +768,19 @@ public partial class MainWindow : Window
             Phase = PhaseTitle.Text, Error = ErrorText.Text, ChartPoints = _chart.Count,
             HistoryCount = HistoryList.Items.Count, RunEnabled = RunButton.IsEnabled, Log = ProgressBox.Text
         }, new JsonSerializerOptions { WriteIndented = true }));
-        Navigate(1); UpdateLayout(); SavePreview(System.IO.Path.Combine(directory, "history.png"));
-        Navigate(2); UpdateLayout(); SavePreview(System.IO.Path.Combine(directory, "servers.png"));
-        Navigate(3); UpdateLayout(); SavePreview(System.IO.Path.Combine(directory, "settings.png"));
-        Navigate(4); UpdateLayout(); SavePreview(System.IO.Path.Combine(directory, "debug.png"));
+        Navigate(1); await Task.Delay(150); UpdateLayout(); SavePreview(System.IO.Path.Combine(directory, "history.png"));
+        if (HistoryList.Columns.Any(x => x.ActualWidth < 40))
+            throw new InvalidOperationException("Столбцы истории не успели сформироваться перед снимком");
+        Navigate(2); await Task.Delay(150); UpdateLayout(); SavePreview(System.IO.Path.Combine(directory, "servers.png"));
+        Navigate(3); await Task.Delay(150); UpdateLayout(); SavePreview(System.IO.Path.Combine(directory, "settings.png"));
+        Navigate(4); await Task.Delay(150); UpdateLayout(); SavePreview(System.IO.Path.Combine(directory, "debug.png"));
         RunDiagnostics.Export(_session.Where(x => x.DebugDirectory != null).Select(x => x.DebugDirectory!).ToArray(), System.IO.Path.Combine(directory, "debug.zip"));
         Navigate(0);
         if (probe) return _session.Count == 2 && _session.Select(x => x.Direction).Distinct().Count() == 2
             && _session.All(x => x.DebugDirectory != null && File.Exists(System.IO.Path.Combine(x.DebugDirectory, "trace.json"))) && RunButton.IsEnabled;
-        if (beeline) return _session.Count == 9 && _session.Take(8).All(x => x.EngineSha256 is BundledIperf.Iperf2LegacySha256 or BundledIperf.Iperf2Sha256)
-            && _session[^1].EngineSha256 == BundledIperf.Iperf2Sha256 && RunButton.IsEnabled
-            && _session.All(x => x.ReceiverMbps != null || x.Mbps == null && x.UploadMbps == null && x.DownloadMbps == null);
+        if (beeline) return _session.Count == 1 && _session[0].Options.Iperf2SenderOnly
+            && _session[0].Direction == TestDirection.Upload && _session[0].Status == RunStatus.Measured
+            && _session[0].EngineSha256 == BundledIperf.Iperf2LegacySha256 && RunButton.IsEnabled;
         return _lastResult?.Status == (cancellation ? RunStatus.Cancelled : RunStatus.Measured)
             && (cancellation || DownloadValue.Text != "—") && RunButton.IsEnabled && HistoryList.Items.Count > 0;
     }
@@ -666,8 +790,9 @@ public partial class MainWindow : Window
         void Check(string scenario, string expectedRate, TransportKind expectedTransport)
         {
             var options = ReadOptions(TestDirection.Upload);
+            long expectedBits = BeelineTest.Applies(CurrentServer()) ? (long)(int)BeelineTariff.SelectedItem * 1_000_000 : long.Parse(expectedRate) * 1_000_000;
             if (RateBox.Text != expectedRate || options.Transport != expectedTransport
-                || options.BandwidthLimitBitsPerSecond != long.Parse(expectedRate) * 1_000_000)
+                || options.BandwidthLimitBitsPerSecond != expectedBits)
                 throw new InvalidOperationException("Ошибка переключения лимита: " + scenario);
             checks.Add(new { Scenario = scenario, Rate = RateBox.Text, options.Transport, options.BandwidthLimitBitsPerSecond, Summary = RateSummary.Text });
         }
@@ -693,7 +818,7 @@ public partial class MainWindow : Window
         Check("Кнопка снятия лимита", "0", TransportKind.Tcp);
         MethodFilter.SelectedIndex = 2;
         BothCheck.IsChecked = true;
-        Check("Оба направления Билайн", "0", TransportKind.Udp);
+        Check("Билайн: только исходящий тарифный тест", "0", TransportKind.Udp);
         MethodFilter.SelectedIndex = 1;
         TransportCombo.SelectedIndex = 0;
         Check("Возврат к TCP без лимита", "0", TransportKind.Tcp);

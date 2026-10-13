@@ -128,7 +128,7 @@ internal static class SandboxInfrastructure
                     // Modern reverse requests have no legacy data payload. A 2.0.8
                     // receiver cannot handle them; isolate that unsupported probe.
                     bool unsupportedControl = legacy && packet.Buffer.Length < 1470;
-                    backend.Connect(IPAddress.Loopback, unsupportedControl ? 55208 : legacy ? limited ? 55481 : 55401 + allocated % 80
+                    backend.Connect(IPAddress.Loopback, unsupportedControl ? 55208 : legacy ? limited ? 55529 : 55401 + allocated % 128
                         : limited ? 55211 : 55301 + allocated % 40);
                     allocated++;
                     peer = new UdpPeer(backend);

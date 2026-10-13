@@ -81,10 +81,16 @@ public static partial class Iperf2TextParser
         }
         result.Diagnostics?.Event("iperf2.parser", $"receiver summaries={receivers.Length}; sender summaries={senders.Length}; missing streams={missingStreams}");
     }
-    public static MeasurementProgress? Interval(string line, TestDirection direction)
+    public static MeasurementProgress? Interval(string line, TestDirection direction, int streams = 1)
     {
         var row = Parse(line.Trim(), direction, []);
-        return row == null ? null : new(direction, row.End, row.Bps / 1_000_000, row.Bytes);
+        return row == null || streams > 1 && row.Id != "SUM" ? null : new(direction, row.End, row.Bps / 1_000_000, row.Bytes);
+    }
+    public static bool IsSummary(string line, int duration, int streams)
+    {
+        var row = Parse(line.Trim(), TestDirection.Upload, []);
+        return row != null && (streams == 1 || row.Id == "SUM") && row.Start <= .15
+            && row.End >= duration * .9 && row.End <= duration + Math.Max(2, duration * .1);
     }
     private static Row[] Summary(IEnumerable<Row> candidates, int duration)
     {

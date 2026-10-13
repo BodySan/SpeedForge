@@ -7,7 +7,7 @@
 - HOSTKEY: https://hostkey.ru/documentation/technical/exist_server_using/speedtest/
 - Selectel: https://selectel.ru/speedtest/
 - RastrNet: https://speedtest.rastrnet.ru/
-- Билайн iPerf2: предоставленные пользователем Python-каталог и архив `Iperf speedcheck.gldn.net.zip`. Архив содержит один адрес и восемь профилей нагрузки; подробности в [BEELINE_PROFILES.md](BEELINE_PROFILES.md).
+- Билайн iPerf2: [официальная страница 911](https://moskva.beeline.ru/customers/products/911/), [Windows-клиент](https://static.beeline.ru/upload/images/iperf.exe). Команды взяты из предоставленного пользователем архива `Iperf speedcheck.gldn.net.zip` (8 профилей) и исходного Python-кода (дополнительно 4 профиля на 500 Мбит/с). На текущей странице опубликован exe без BAT-файлов. Подробности в [BEELINE_PROFILES.md](BEELINE_PROFILES.md).
 
 Параметры iPerf2: https://iperf2.sourceforge.io/iperf-manpage.html
 Документация iPerf3: https://software.es.net/iperf/

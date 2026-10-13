@@ -10,7 +10,7 @@ namespace SpeedForge.Desktop;
 
 public partial class MainWindow
 {
-    public async Task<bool> VerifySandboxAsync(string directory, bool resetOnly = false, bool geoOnly = false)
+    public async Task<bool> VerifySandboxAsync(string directory, bool resetOnly = false, bool geoOnly = false, bool serversOnly = false)
     {
         Directory.CreateDirectory(directory);
         var cases = new List<object>();
@@ -18,6 +18,8 @@ public partial class MainWindow
         void Require(bool value, string why) { if (!value) throw new InvalidOperationException(why); }
         async Task Test(string name, Func<Task> action)
         {
+            if (serversOnly && !(name.StartsWith("Серверы:", StringComparison.Ordinal) || name.StartsWith("Билайн: закрытый список", StringComparison.Ordinal)
+                || name == "На главном экране видна ровно одна кнопка действия")) return;
             if (resetOnly && name is not ("Ручная загрузка не запускает отдачу" or "Смена сервера очищает прежние скорости и график" or "На главном экране видна ровно одна кнопка действия")) return;
             if (geoOnly && !name.StartsWith("GeoIP:", StringComparison.Ordinal)) return;
             try { await action(); cases.Add(new { Name = name, Passed = true }); }
@@ -32,7 +34,7 @@ public partial class MainWindow
             SelectServer(_servers.First(x => x.Engine == server.Engine));
             _verificationServer = server;
             UpdateProfile();
-            DurationBox.Text = "3"; ParallelBox.Text = "1"; RateBox.Text = "10";
+            DurationBox.Text = "3"; ParallelBox.Text = "1"; RateBox.Text = "10"; BeelineTariff.SelectedItem = 500;
             LatencyCheck.IsChecked = false; PrivateCheck.IsChecked = true;
             BothCheck.IsChecked = automatic;
             TransportCombo.SelectedIndex = server.Engine == EngineKind.Iperf2 ? 1 : 0;
@@ -140,10 +142,20 @@ public partial class MainWindow
             Require(_session.Where(x => x.Engine == EngineKind.Http).All(x => x.Transport == TransportKind.Tcp), "HTTP унаследовал UDP");
             CompareCombo.ItemsSource = _servers;
         });
-        await Test("Версия 1.0.1 и многоразмерная иконка встроены в exe", () =>
+        await Test("Тариф Билайна не ограничивает отдельную проверку HTTP", async () =>
         {
-            Require(typeof(MainWindow).Assembly.GetName().Version == new Version(1,0,1,0), "Неверная версия assembly");
-            Require(Icon != null && Title.Contains("1.0", StringComparison.Ordinal), "Нет иконки или версии в окне");
+            var server = _servers.Single(x => x.Id == "beeline-iperf2") with { Host = "127.0.0.1", Port = 55214, Ports = [55214] };
+            Configure(server); BeelineTariff.SelectedItem = 100;
+            CompareCombo.ItemsSource = new[] { Http("both") }; CompareCombo.SelectedIndex = 0;
+            CompareButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await _activeUiTask!;
+            Require(_session.Count == 3 && _session[0].Options.Iperf2SenderOnly
+                && _session.Skip(1).All(x => !x.Options.Iperf2SenderOnly && x.Options.BandwidthLimitBitsPerSecond == 0 && x.Status == RunStatus.Measured),
+                "UDP-тариф или режим Билайна перенесён на внешнюю проверку");
+        });
+        await Test("Версия 1.1.0 и многоразмерная иконка встроены в exe", () =>
+        {
+            Require(typeof(MainWindow).Assembly.GetName().Version == new Version(1,1,0,0), "Неверная версия assembly");
+            Require(Icon != null && Title.Contains("1.1.0", StringComparison.Ordinal), "Нет иконки или версии в окне");
             var resource = Application.GetResourceStream(new Uri("pack://application:,,,/Assets/SpeedForge.ico"));
             using var stream = resource.Stream;
             var decoder = new System.Windows.Media.Imaging.IconBitmapDecoder(stream, System.Windows.Media.Imaging.BitmapCreateOptions.PreservePixelFormat,
@@ -174,16 +186,23 @@ public partial class MainWindow
                 "В карточку или график попала скорость отправителя");
             SavePreview(Path.Combine(directory, "iperf2-100mbit.png"));
         });
-        await Test("Билайн: одна кнопка проходит 8 профилей и проверяет reverse", async () =>
+        await Test("Билайн: один тарифный UDP-тест, без reverse и ожидания приёма", async () =>
         {
             var server = _servers.Single(x => x.Id == "beeline-iperf2") with { Host = "127.0.0.1", Port = 55214, Ports = [55214] };
-            Configure(server);
-            Require(Iperf2ProfilesCheck.Visibility == Visibility.Visible && !ParallelBox.IsEnabled, "Профили не включились автоматически");
+            Configure(server); BeelineTariff.SelectedItem = 500;
+            Require(OperatorPanel.Visibility == Visibility.Collapsed && CityPanel.Visibility == Visibility.Collapsed
+                && BeelineTariffPanel.Visibility == Visibility.Visible && ParallelPanel.Visibility == Visibility.Collapsed
+                && Iperf2ProfilesCheck.Visibility == Visibility.Collapsed, "Не заменены поля или видны потоки");
+            var clock = System.Diagnostics.Stopwatch.StartNew();
             await Click();
-            Require(_session.Count == 9 && _session.Take(8).All(x => x.Status == RunStatus.Measured
-                && x.EngineSha256 == BundledIperf.Iperf2LegacySha256) && _session[^1].Status == RunStatus.Timeout, "Не пройдены все профили совместимым клиентом");
-            Require(double.Parse(UploadValue.Text) == Math.Round(_session.Take(8).Max(x => x.ReceiverMbps)!.Value,1), "Итог не использует лучший приёмный результат");
-            SavePreview(Path.Combine(directory, "beeline-profiles.png"));
+            Require(_session.Count == 1 && _session[0].Direction == TestDirection.Upload && _session[0].Options.Iperf2SenderOnly
+                && _session[0].Options.BandwidthLimitBitsPerSecond == 500_000_000 && _session[0].Status == RunStatus.Measured
+                && _session[0].EngineSha256 == BundledIperf.Iperf2LegacySha256, "Не выполнен единственный тарифный тест");
+            Require(clock.Elapsed.TotalSeconds < 5 && DownloadValue.Text == "—" && DownloadStatus.Text == "Не проверяется", "Ожидается входящий трафик или FIN-повторы");
+            SavePreview(Path.Combine(directory, "beeline-tariff-result.png"));
+            AdvancedPanel.IsExpanded = true; await Task.Delay(150); UpdateLayout();
+            SavePreview(Path.Combine(directory, "beeline-tariff-settings.png"));
+            AdvancedPanel.IsExpanded = false;
         });
         await Test("История iPerf2: профиль, направление и причина вместо одинакового Partial", async () =>
         {
@@ -191,7 +210,9 @@ public partial class MainWindow
             DirectionCombo.SelectedIndex = 1; RateBox.Text = "1";
             await Click();
             Require(_lastResult!.Status == RunStatus.Partial && _lastResult.StatusLabel == "Нет отчёта сервера"
-                && UploadValue.Text == "—" && _chart.Count == 0, "Показана скорость отправителя без ACK");
+                && UploadValue.Text == "—" && _chart.Count == 0
+                && UploadTxDetail.Visibility == Visibility.Visible && UploadTxDetail.Text.StartsWith("TX локально:")
+                && JitterValue.Text == "—" && PhaseTitle.Text.Contains("UDP отправлен"), "Показана скорость отправителя без ACK или потеряна завершённая отправка");
             Navigate(1); await Task.Delay(150); UpdateLayout();
             var bindings = HistoryList.Columns.OfType<DataGridTextColumn>().Select(x => (x.Binding as System.Windows.Data.Binding)?.Path.Path).ToArray();
             Require(bindings.Contains(nameof(RunResult.ProfileLabel)) && bindings.Contains(nameof(RunResult.DirectionLabel))
@@ -203,18 +224,77 @@ public partial class MainWindow
                 { Width = HistoryList.ActualWidth, Columns = HistoryList.Columns.Select(x => new { x.Header, x.ActualWidth }) }, VerificationJson));
             SavePreview(Path.Combine(directory, "history-no-ack.png"));
         });
-        await Test("Билайн: ручная загрузка не меняет непроверенную карточку отдачи", async () =>
+        await Test("Тайминги UI: пинг, передача и локальный TX показываются до итогового отчёта", async () =>
         {
-            var server = _servers.Single(x => x.Id == "beeline-iperf2") with { Host = "127.0.0.1", Port = 55210, Ports = [55210] };
-            Configure(server, false);
-            Iperf2ProfilesCheck.IsChecked = false;
-            ParallelBox.Text = "4";
-            Iperf2ProfilesCheck.IsChecked = true;
-            Require(ParallelBox.Text == "1" && !ParallelBox.IsEnabled, "Ручная загрузка наследует скрытые четыре потока");
-            DirectionCombo.SelectedIndex = 0;
+            var server = ServerCatalog.Custom("127.0.0.1", 55214, EngineKind.Iperf2) with { Iperf2Legacy = true };
+            Configure(server, false); Navigate(0);
+            DirectionCombo.SelectedIndex = 1; RateBox.Text = "1"; LatencyCheck.IsChecked = true;
+            RunButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            try
+            {
+                await Task.Delay(600);
+                Require(PhaseTitle.Text == "Пинг до нагрузки" && !TimeInfo.Text.Contains("отчёт", StringComparison.OrdinalIgnoreCase),
+                    "До начала передачи уже показывается ожидание отчёта");
+                var deadline = System.Diagnostics.Stopwatch.StartNew();
+                while (UploadTxDetail.Visibility != Visibility.Visible && deadline.Elapsed < TimeSpan.FromSeconds(5)) await Task.Delay(50);
+                Require(_running != null && UploadValue.Text == "—" && _chart.Count == 0
+                    && UploadTxDetail.Text.StartsWith("TX локально:") && PhaseTitle.Text == "Передача данных"
+                    && ChartHint.Text == "Ожидаем данные приёмника",
+                    "Локальный TX потерян, выдан за приём или показан неверный этап");
+                SavePreview(Path.Combine(directory, "timing-transferring.png"));
+                await _activeUiTask!;
+                Require(TimeInfo.Text.StartsWith("Весь прогон:") && _lastResult!.Stages.Any(x => x.Stage == RunStage.Transferring),
+                    "Нет общего времени прогона или истории этапов");
+            }
+            finally { if (_running != null) { _running.Cancel(); await _activeUiTask!; } }
+        });
+        await Test("Нулевые или ошибочные итоги не заполняют карточки скорости", () =>
+        {
+            ResetResult();
+            var run = new RunResult { Direction = TestDirection.Upload };
+            Iperf3Parser.Apply("""{"end":{"sum_received":{"bytes":0,"bits_per_second":1000000000}}}""", run);
+            ApplyResultRates(run);
+            Require(run.Status == RunStatus.NoData && UploadValue.Text == "—" && run.UploadMbps == null, "Показан гигабит без передачи байтов");
+            ApplyResultRates(new RunResult { Status = RunStatus.EngineError, DownloadMbps = 1000, UploadMbps = 1000 });
+            Require(UploadValue.Text == "—" && DownloadValue.Text == "—" && _chart.Count == 0, "Ошибочный итог попал в карточку или график");
+            return Task.CompletedTask;
+        });
+        await Test("Билайн: скрытые поля не меняют тариф и не запускают загрузку", async () =>
+        {
+            var server = _servers.Single(x => x.Id == "beeline-iperf2") with { Host = "127.0.0.1", Port = 55208, Ports = [55208] };
+            Configure(server, false); BeelineTariff.SelectedItem = 100;
+            ParallelBox.Text = "ошибка"; RateBox.Text = "ошибка"; DirectionCombo.SelectedIndex = 0;
             await Click();
-            Require(_session.Count == 1 && _session[0].Direction == TestDirection.Download && _session[0].Status == RunStatus.Measured
-                && UploadValue.Text == "—" && UploadStatus.Text == "Не проверено", "Отдача отмечена неуспешной без запуска");
+            Require(_session.Count == 1 && _session[0].Direction == TestDirection.Upload && _session[0].Status == RunStatus.Measured
+                && _session[0].ReceiverBytes == null && !DirectionObservation.Confirmed(_session[0])
+                && UploadHeading.Text.Contains("UDP") && UploadStatus.Text == "Отправка завершена"
+                && SummaryText.Text.Contains("не подтверждены"), "Отправка выдана за приём или запущен reverse");
+            SavePreview(Path.Combine(directory, "beeline-no-report.png"));
+        });
+        await Test("Пинг, джиттер и потери видны рядом и различаются цветом", async () =>
+        {
+            Navigate(0); await Task.Delay(150);
+            _session.Clear();
+            var now = DateTimeOffset.Now;
+            var other = new RunResult { ProfileId = "another-server", ResolvedIp = "8.8.8.8" };
+            other.Latency.Add(new(ProbePhase.Idle, now.AddSeconds(-2), 900, null));
+            other.Latency.Add(new(ProbePhase.Idle, now.AddSeconds(-1), 100, null));
+            _session.Add(other);
+            var run = new RunResult { ProfileId = "quality-server", ResolvedIp = "1.1.1.1", Direction = TestDirection.Download, Transport = TransportKind.Udp,
+                ReceiverBytes = 100000, ReceiverMbps = 100, JitterMilliseconds = 12, LostPercent = 2 };
+            run.Latency.AddRange([new(ProbePhase.Idle, now, 10, null), new(ProbePhase.Idle, now.AddSeconds(1), 14, null)]);
+            _session.Add(run); UpdateQualityMetrics(run); UpdateLayout();
+            Require(PingValue.Text == 12.0.ToString("F1") && JitterValue.Text == 12.0.ToString("F1")
+                && JitterSource.Text == "мс · UDP" && PacketLossValue.Text.Contains(2.0.ToString("F2")), "Потеряны показатели или источник джиттера");
+            Require(((SolidColorBrush)PingValue.Foreground).Color == Color.FromRgb(0x82,0xC6,0xAE)
+                && ((SolidColorBrush)JitterValue.Foreground).Color == Color.FromRgb(0xD8,0xB8,0x84)
+                && ((SolidColorBrush)PacketLossValue.Foreground).Color == Color.FromRgb(0xD9,0x9A,0x9D), "Цвет не отражает качество показателя");
+            Width = 840; await Task.Delay(150); UpdateLayout();
+            Require(JitterValue.IsVisible && JitterValue.ActualWidth >= 60, "Джиттер скрыт на минимальной ширине");
+            SavePreview(Path.Combine(directory, "quality-metrics.png"));
+            Width = 1000; ResetResult();
+            Require(JitterValue.Text == "—" && PacketLossValue.Text == "Потери: —" && UploadTxDetail.Visibility == Visibility.Collapsed,
+                "При новом сервере остаются старые показатели");
         });
         await Test("Смена сервера очищает прежние скорости и график", () =>
         {
@@ -225,18 +305,19 @@ public partial class MainWindow
         });
         await Test("TCP/UDP/HTTP не получают скрытый лимит", () =>
         { _verificationServer = null; VerifyRateSwitches(directory); return Task.CompletedTask; });
-        await Test("На главном экране видна ровно одна кнопка действия", () =>
+        await Test("На главном экране видна ровно одна кнопка действия", async () =>
         {
             _verificationServer = null; SelectServer(_servers.First(x => x.Id == "hostkey-https"));
-            Navigate(0); AdvancedPanel.IsExpanded = false; UpdateLayout();
+            Navigate(0); AdvancedPanel.IsExpanded = false; await Task.Delay(100); UpdateLayout();
             var main = (DependencyObject)((TabItem)MainTabs.Items[0]).Content;
             var buttons = VisibleButtons(main).ToArray();
             Require(buttons.Length == 1 && buttons[0] == RunButton, "Видимых кнопок: " + buttons.Length);
             SavePreview(Path.Combine(directory, "minimal-main.png"));
+            Require(MeasurementNotice.IsVisible && MeasurementNotice.Text.Contains("фактической скорости линии")
+                && MainScroll.ScrollableHeight < 1, $"Приписка: visible={MeasurementNotice.IsVisible}; прокрутка={MainScroll.ScrollableHeight:F1}");
             AdvancedPanel.IsExpanded = true; UpdateLayout(); SavePreview(Path.Combine(directory, "advanced.png"));
             Require(!VisibleText(ServerCombo).Any(x => x.StartsWith("ServerEntry {", StringComparison.Ordinal)), "В списке сервера показаны внутренние поля");
             AdvancedPanel.IsExpanded = false;
-            return Task.CompletedTask;
         });
         await Test("История, каталог, настройки и полный debug открываются", () =>
         {
@@ -297,6 +378,55 @@ public partial class MainWindow
             GeoIpCheck.IsChecked = true; string selected = CurrentServer().Id;
             await RefreshNetworkAsync((_,_) => Task.FromResult(new NetworkIdentity(null,null,"Unavailable")));
             Require(CurrentServer().Id == selected && RunButton.IsEnabled && ConnectionInfo.Text.Contains("недоступен"), "Ошибка геолокации заблокировала приложение");
+        });
+        await Test("Билайн: закрытый список 100–1000 и сохранение выбранного тарифа", () =>
+        {
+            Require(!BeelineTariff.IsEditable && BeelineTariff.Items.Cast<int>().SequenceEqual(Enumerable.Range(1,10).Select(x => x * 100)), "Неверные значения списка тарифа");
+            _verificationServer = null; SelectServer(_servers.Single(x => x.Id == "beeline-iperf2"));
+            foreach (int tariff in BeelineTariff.Items)
+            {
+                BeelineTariff.SelectedItem = tariff;
+                var options = ReadOptions();
+                Require(options.BandwidthLimitBitsPerSecond == (long)tariff * 1_000_000 && options.Direction == TestDirection.Upload,
+                    "Выбор тарифа не применён к общей нагрузке");
+            }
+            var second = new MainWindow(_store.DirectoryPath, false);
+            Require((int?)second.BeelineTariff.SelectedItem == 1000, "Тариф не восстановился после запуска"); second.Close();
+            BeelineTariff.SelectedItem = 500;
+            return Task.CompletedTask;
+        });
+        await Test("Серверы: сохранение адреса, новый запуск, сброс и запрет неверного ввода", async () =>
+        {
+            _verificationServer = null; CustomHost.Clear(); CustomUrl.Clear();
+            var original = _servers.Single(x => x.Id == "beeline-iperf2"); SelectServer(original);
+            Navigate(2); await Task.Delay(80); UpdateLayout(); CatalogSearch.Text = original.Host;
+            CatalogGrid.SelectedItem = original; CatalogHost.Text = "corrected.example.net";
+            CatalogSaveButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Require(CurrentServer().Host == "corrected.example.net" && CurrentServer().Port == original.Port
+                && CurrentServer().HasLocalOverride && CatalogResetButton.IsEnabled && _chart.Count == 0
+                && ObservationText.Text.Contains("не проверено"), "Правка не применена или оставила старые результаты");
+            var second = new MainWindow(_store.DirectoryPath, false);
+            try
+            {
+                var loaded = second._servers.Single(x => x.Id == original.Id);
+                second.SelectServer(loaded);
+                Require(second.CurrentServer().Host == "corrected.example.net" && second.ReadOptions().Iperf2SenderOnly,
+                    "Новый запуск потерял адрес или исходящий режим");
+            }
+            finally { second.Close(); }
+            CatalogHost.Text = "https://bad.example.net:123";
+            CatalogSaveButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Require(CurrentServer().Host == "corrected.example.net" && CatalogEditStatus.Text.StartsWith("Не удалось сохранить"), "Неверный ввод принят");
+            CatalogGrid.SelectedItem = _servers.Single(x => x.Id == original.Id);
+            CatalogHost.Text = "corrected.example.net";
+            CatalogEditStatus.Text = "Адрес сохранён. Порт остаётся прежним.";
+            await Task.Delay(100); UpdateLayout();
+            Require(CatalogGrid.ItemContainerGenerator.ContainerFromItem(CatalogGrid.SelectedItem) is DataGridRow { IsVisible: true }, "Сохранённая строка осталась вне видимой части списка");
+            SavePreview(Path.Combine(directory, "server-editor.png"));
+            CatalogResetButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Require(CurrentServer().Host == original.Host && !CurrentServer().HasLocalOverride && !CatalogResetButton.IsEnabled,
+                "Сброс адреса не применён");
+            CatalogSearch.Clear(); Navigate(0);
         });
         await File.WriteAllTextAsync(Path.Combine(directory, "ui-summary.txt"), $"TOTAL={cases.Count}; PASS={cases.Count - failed}; FAIL={failed}");
         return failed == 0;

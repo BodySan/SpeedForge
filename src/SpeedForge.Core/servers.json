@@ -1907,25 +1907,64 @@
       5001
     ],
     "engine": "Iperf2",
-    "source": "Предоставленный пользователем архив Iperf speedcheck.gldn.net.zip",
-    "provenance": "8 командных профилей из архива; приём подтверждается Server Report",
+    "source": "https://moskva.beeline.ru/customers/products/911/",
+    "provenance": "8 профилей из архива и 4 профиля 500 Мбит/с из исходного Python-приложения; приём подтверждается Server Report",
     "permittedDirections": [
-      "Upload",
-      "Download"
+      "Upload"
     ],
     "permittedTransports": [
       "Udp"
     ],
-    "notes": "Один адрес, восемь профилей отдачи: 1/5/10/20 потоков, 100/1000 Мбит/с на поток. После профилей проверяется reverse. TX без ACK не считается скоростью соединения.",
+    "notes": "Исходящая UDP-проверка внутри сети Билайна. В приложении тариф задаёт общую нагрузку одного теста. Отправка с ПК без отчёта сервера не доказывает скорость приёма. Исходные BAT-профили сохранены для отладки.",
     "iperf2Profiles": [
-      { "streams": 1, "bitsPerSecondPerStream": 100000000 },
-      { "streams": 5, "bitsPerSecondPerStream": 100000000 },
-      { "streams": 10, "bitsPerSecondPerStream": 100000000 },
-      { "streams": 20, "bitsPerSecondPerStream": 100000000 },
-      { "streams": 1, "bitsPerSecondPerStream": 1000000000 },
-      { "streams": 5, "bitsPerSecondPerStream": 1000000000 },
-      { "streams": 10, "bitsPerSecondPerStream": 1000000000 },
-      { "streams": 20, "bitsPerSecondPerStream": 1000000000 }
+      {
+        "streams": 1,
+        "bitsPerSecondPerStream": 100000000
+      },
+      {
+        "streams": 5,
+        "bitsPerSecondPerStream": 100000000
+      },
+      {
+        "streams": 10,
+        "bitsPerSecondPerStream": 100000000
+      },
+      {
+        "streams": 20,
+        "bitsPerSecondPerStream": 100000000
+      },
+      {
+        "streams": 1,
+        "bitsPerSecondPerStream": 500000000
+      },
+      {
+        "streams": 5,
+        "bitsPerSecondPerStream": 500000000
+      },
+      {
+        "streams": 10,
+        "bitsPerSecondPerStream": 500000000
+      },
+      {
+        "streams": 20,
+        "bitsPerSecondPerStream": 500000000
+      },
+      {
+        "streams": 1,
+        "bitsPerSecondPerStream": 1000000000
+      },
+      {
+        "streams": 5,
+        "bitsPerSecondPerStream": 1000000000
+      },
+      {
+        "streams": 10,
+        "bitsPerSecondPerStream": 1000000000
+      },
+      {
+        "streams": 20,
+        "bitsPerSecondPerStream": 1000000000
+      }
     ]
   }
 ]

@@ -2,8 +2,16 @@ using SpeedForge.Core;
 using System.Net;
 
 if (args.Contains("--emit-output")) { Console.Write(new string('x', 4_100_000)); Console.Error.Write("stderr-marker"); return 0; }
-if (args.Length >= 2 && args[0] == "--audit-catalog") return await CatalogAudit.RunAsync(Path.GetFullPath(args[1]), args.Contains("--udp"));
+if (args.Contains("--hold-process"))
+{
+    Console.WriteLine("owned-pid=" + Environment.ProcessId); Console.Out.Flush();
+    await Task.Delay(Timeout.InfiniteTimeSpan); return 0;
+}
+if (args.Length >= 2 && args[0] == "--audit-catalog") return await CatalogAudit.RunAsync(Path.GetFullPath(args[1]), args.Contains("--udp"),
+    Array.IndexOf(args, "--only") is var selectedIndex && selectedIndex >= 0 ? args.ElementAtOrDefault(selectedIndex + 1) ?? throw new ArgumentException("Укажите записи после --only") : null);
 if (args.Length >= 2 && args[0] == "--parse-console") return await ConsoleParserAudit.RunAsync(Path.GetFullPath(args[1]));
+if (args.Length >= 2 && args[0] == "--compare-beeline-console") return await BeelineConsoleComparison.RunAsync(Path.GetFullPath(args[1]));
+if (args.Length >= 2 && args[0] == "--audit-timings") return await TimingAudit.RunAsync(Path.GetFullPath(args[1]));
 if (args.Length >= 2 && args[0] == "--audit-beeline") return await BeelineAudit.RunAsync(Path.GetFullPath(args[1]), args.Contains("--local"), args.Contains("--archive-rates"), args.Contains("--latency"));
 if (args.Length >= 2 && args[0] == "--sandbox-serve") return await SandboxInfrastructure.ServeAsync(Path.GetFullPath(args[1]));
 if (args.Length >= 2 && args[0] == "--sandbox-test") return await SandboxTests.RunAsync(Path.GetFullPath(args[1]), args.Contains("--iperf2-only"));
@@ -35,6 +43,7 @@ const string Good = """
 """;
 GeoIpTests.Register(Case);
 SpeedRegressionTests.Register(Case);
+ServerOverrideTests.Register(Case);
 const string NoData = """
 {"end":{"sum_sent":{"bytes":0,"bits_per_second":0},"sum_received":{"bytes":0,"bits_per_second":0}}}
 """;
@@ -79,10 +88,10 @@ Case("iPerf2: отправлено 1 Гбит/с, сервер принял 100 
     Require(result.Status == RunStatus.Measured && result.UploadMbps == 100 && result.ReceiverMbps == 100
         && result.SenderMbps == 1000 && result.LostPercent == 90 && result.Intervals.Count == 0);
 });
-Case("Все 8 профилей Билайн сохраняют -b на поток и -P из архива", () =>
+Case("Все 12 профилей Билайн сохраняют -b на поток и -P из архива", () =>
 {
     var server = ServerCatalog.LoadPublished().Single(x => x.Id == "beeline-iperf2");
-    Require(server.Iperf2Profiles.Length == 8);
+    Require(server.Iperf2Profiles.Length == 12);
     foreach (var profile in server.Iperf2Profiles)
     {
         var options = new TestOptions(Transport: TransportKind.Udp, ParallelStreams: profile.Streams,
@@ -337,6 +346,23 @@ Case("Диагностика сохраняет обрезку stdout и stderr"
         [typeof(Program).Assembly.Location, "--emit-output"], TimeSpan.FromSeconds(10), CancellationToken.None).GetAwaiter().GetResult();
     Require(outcome.ExitCode == 0 && outcome.Stdout.Length == 4_000_000 && outcome.StdoutTruncated && outcome.Stderr.Contains("stderr-marker"));
 });
+foreach (bool cancel in new[] { false, true })
+    Case("Дочерний процесс фактически завершён перед возвратом: " + (cancel ? "отмена" : "таймаут"), () =>
+    {
+        using var stop = new CancellationTokenSource();
+        int ownedPid = 0;
+        var outcome = ExternalProcess.RunAsync(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "dotnet", "dotnet.exe"),
+            [typeof(Program).Assembly.Location, "--hold-process"], TimeSpan.FromSeconds(cancel ? 10 : 2), stop.Token, line =>
+            {
+                if (line.StartsWith("owned-pid=", StringComparison.Ordinal) && int.TryParse(line[10..], out int pid))
+                { ownedPid = pid; if (cancel) stop.Cancel(); }
+            }).GetAwaiter().GetResult();
+        Require(ownedPid > 0 && outcome.Cancelled == cancel && outcome.TimedOut != cancel);
+        bool exited;
+        try { using var child = System.Diagnostics.Process.GetProcessById(ownedPid); exited = child.HasExited; }
+        catch (ArgumentException) { exited = true; }
+        Require(exited, "После возврата ExternalProcess дочерний процесс всё ещё работает");
+    });
 if (args.Contains("--iperf2"))
 {
     foreach (var direction in new[] { TestDirection.Upload, TestDirection.Download })

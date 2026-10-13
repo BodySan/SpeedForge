@@ -1,0 +1,25 @@
+{
+  "Version": "1.0.3-local",
+  "PublishedToGitHub": false,
+  "AutomaticChecks": {
+    "Regression": 114,
+    "Sandbox": 33,
+    "UI": 37,
+    "Failed": 0
+  },
+  "LiveBeeline": {
+    "Elapsed": 9.6172405,
+    "Runs": 1,
+    "Direction": "Upload",
+    "Status": "Measured",
+    "Cap": 500000000,
+    "Sender": 499.86657,
+    "Receiver": null,
+    "Stage": "UDP-отправка завершена"
+  },
+  "ExeSHA256": "484e3763b98516efabe4dd0073910bba62eb8cd91b969370c64e59be78027666",
+  "Scope": "Проверка новой логики Билайна, интерфейса и регрессий. Полный каталог повторно не проверялся.",
+  "KnownLimitations": [
+    "Локальная UDP-отправка без отчёта сервера не доказывает скорость доставки внутри сети оператора."
+  ]
+}

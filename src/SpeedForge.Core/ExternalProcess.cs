@@ -33,9 +33,19 @@ public static class ExternalProcess
         catch (OperationCanceledException)
         {
             cancelled = ct.IsCancellationRequested; timedOut = !cancelled;
-            TryTerminate(process);
         }
-        finally { if (!process.HasExited) TryTerminate(process); }
+        finally
+        {
+            if (!process.HasExited)
+            {
+                TryTerminate(process);
+                // Kill requests termination; wait for the real exit before releasing
+                // the run lock or attempting another connection.
+                try { await process.WaitForExitAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(3)); }
+                catch (TimeoutException ex)
+                { throw new IOException("Измерительный процесс не завершился после остановки. Повторное подключение отменено.", ex); }
+            }
+        }
         try { await Task.WhenAll(output, error).WaitAsync(TimeSpan.FromSeconds(3)); }
         catch (Exception ex) when (ex is IOException or TimeoutException or ObjectDisposedException)
         { stderr.Append("\n[Ошибка чтения вывода: " + ex.GetType().Name + "]\n"); }

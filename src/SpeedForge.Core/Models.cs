@@ -25,8 +25,9 @@ public sealed record ServerEntry(
     public HttpProfile? Http { get; init; }
     public Iperf2LoadProfile[] Iperf2Profiles { get; init; } = [];
     public bool Iperf2Legacy { get; init; }
+    [JsonIgnore] public bool HasLocalOverride { get; init; }
     public string MethodLabel => Engine == EngineKind.Http ? (Http?.DownloadUrl.StartsWith("https:") == true ? "HTTPS" : "HTTP") : Engine.ToString();
-    public string Observed => PublishedObservations.Describe(Id, Engine == EngineKind.Iperf2 ? TransportKind.Udp : TransportKind.Tcp);
+    public string Observed => HasLocalOverride ? "Адрес изменён · не проверено" : PublishedObservations.Describe(Id, Engine == EngineKind.Iperf2 ? TransportKind.Udp : TransportKind.Tcp);
 }
 
 public sealed record HttpProfile(string DownloadUrl, string? UploadUrl = null, string Protocol = "File", string UploadMethod = "POST");
@@ -49,10 +50,13 @@ public sealed record TestOptions(
     bool UseIperf2Profiles = true,
     bool MeasureLatencyBefore = true,
     bool MeasureLatencyAfter = true,
-    bool ProbeIperf2Client = false)
+    bool ProbeIperf2Client = false,
+    bool Iperf2SenderOnly = false)
 {
     public void Validate()
     {
+        if (Iperf2SenderOnly && (Direction != TestDirection.Upload || Transport != TransportKind.Udp || BandwidthLimitBitsPerSecond <= 0 || UseIperf2Profiles))
+            throw new NotSupportedException("Для исходящей проверки Билайна требуется одна UDP-отправка с суммарной нагрузкой тарифа");
         if (DurationSeconds is < 3 or > 30) throw new ArgumentOutOfRangeException(nameof(DurationSeconds), "3–30 секунд");
         int maximumStreams = Iperf2OfferedBitsPerSecondPerStream > 0 ? 20 : 8;
         if (ParallelStreams < 1 || ParallelStreams > maximumStreams) throw new ArgumentOutOfRangeException(nameof(ParallelStreams), $"1–{maximumStreams} потоков");
@@ -100,6 +104,8 @@ public sealed class RunResult
     public TestOptions Options { get; set; } = new();
     public long? SenderBytes { get; set; }
     public long? ReceiverBytes { get; set; }
+    public long? UploadReceiverBytes { get; set; }
+    public long? DownloadReceiverBytes { get; set; }
     public double? SenderMbps { get; set; }
     public double? ReceiverMbps { get; set; }
     public int? ReceiverStreams { get; set; }
@@ -119,6 +125,7 @@ public sealed class RunResult
     public string? StderrExcerpt { get; set; }
     public List<IntervalSample> Intervals { get; set; } = [];
     public List<LatencySample> Latency { get; set; } = [];
+    public List<RunStageProgress> Stages { get; set; } = [];
     public List<string> Limitations { get; set; } = [];
     public string? DebugDirectory { get; set; }
     [JsonIgnore]
@@ -126,15 +133,17 @@ public sealed class RunResult
     [JsonIgnore]
     public string ProfileLabel => Options.Iperf2OfferedBitsPerSecondPerStream > 0
         ? $"{Options.ParallelStreams}({Options.Iperf2OfferedBitsPerSecondPerStream / 1_000_000})"
-        : $"{Transport} · {Options.ParallelStreams} поток(а)";
+        : Options.Iperf2SenderOnly ? $"Тариф {Options.BandwidthLimitBitsPerSecond / 1_000_000} Мбит/с"
+        : $"{Transport.ToString().ToUpperInvariant()} · {StreamCount}";
+    private string StreamCount => $"{Options.ParallelStreams} " + (Options.ParallelStreams switch { 1 => "поток", 2 or 3 or 4 => "потока", _ => "потоков" });
     [JsonIgnore]
     public string ProfileDescription => $"{ProfileLabel} · {Options.DurationSeconds} с нагрузки" +
         (Options.BandwidthLimitBitsPerSecond > 0 ? $" · общий лимит {Options.BandwidthLimitBitsPerSecond / 1_000_000} Мбит/с" : "") +
-        (Options.Iperf2OfferedBitsPerSecondPerStream > 0 ? $"\n{Options.ParallelStreams} поток(а), по {Options.Iperf2OfferedBitsPerSecondPerStream / 1_000_000} Мбит/с заданной нагрузки на поток.\nИзмеренная скорость — в столбце ↑; нагрузка не определяет тариф." : "");
+        (Options.Iperf2OfferedBitsPerSecondPerStream > 0 ? $"\n{StreamCount}, по {Options.Iperf2OfferedBitsPerSecondPerStream / 1_000_000} Мбит/с заданной нагрузки на поток.\nИзмеренная скорость — в столбце ↑; нагрузка не определяет тариф." : "");
     [JsonIgnore]
     public string ServerLabel => $"{Group} · {City}";
     [JsonIgnore]
-    public string StatusLabel => ErrorCode switch
+    public string StatusLabel => Options.Iperf2SenderOnly && Status == RunStatus.Measured ? "UDP отправлено" : ErrorCode switch
     {
         "IPERF2_RECEIVER_UNCONFIRMED" => "Нет отчёта сервера",
         "IPERF2_RECEIVER_REPORT_INVALID" => "Неверный отчёт сервера",

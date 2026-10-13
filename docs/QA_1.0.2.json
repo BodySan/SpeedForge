@@ -1,0 +1,65 @@
+{
+  "Version": "1.0.2-local",
+  "PublishedToGitHub": false,
+  "AutomaticChecks": {
+    "Regression": 112,
+    "Sandbox": 33,
+    "UI": 36,
+    "Timing": 3,
+    "Failed": 0
+  },
+  "ConsoleBeeline": {
+    "Profiles": 12,
+    "DurationSeconds": 10,
+    "AdditionalRateCap": 0,
+    "CompletedWithoutTimeout": 12,
+    "ServerReports": 0
+  },
+  "SandboxBeelineMaximum": {
+    "Profiles": 12,
+    "DurationSeconds": 10,
+    "AdditionalRateCap": 0,
+    "MeasuredProfiles": 12
+  },
+  "InternetMaximum": {
+    "CatalogRecords": 125,
+    "BaseCatalogRecords": 65,
+    "AdditionalUdpRecords": 60,
+    "DurationSeconds": 8,
+    "Streams": 4,
+    "RateCap": 0,
+    "ConcurrentServers": 1,
+    "TcpHttpVerdicts": {
+      "Both": 58,
+      "DownloadObserved": 2,
+      "Unconfirmed": 5
+    },
+    "UdpVerdicts": {
+      "Both": 50,
+      "Unconfirmed": 10
+    }
+  },
+  "KnownLimitations": [
+    "speedcheck.gldn.net не вернул Server Report на проверенном подключении; локальный TX показан отдельно и не является скоростью приёма.",
+    "Часть публичных точек не начала передачу, не завершила отчёт или ответила занятостью/ошибкой соединения. Подробности — в SERVER_CHECKS_1.0.2.md; это не доказательство неисправности клиента или постоянного запрета направления."
+  ],
+  "LatestTimingRechecks": {
+    "Records": 12,
+    "RateCap": 0,
+    "ConcurrentServers": 1
+  },
+  "PortableExe": {
+    "SHA256": "72fc7793e3bb1adc0723ec5be4f966aeb5eae74a71a7a097460b6048e2aa49f9",
+    "Bytes": 167237248,
+    "ProductVersion": "1.0.2-local",
+    "PublicMeasuredDirections": 4,
+    "RateCap": 0,
+    "Transports": [
+      "TCP",
+      "HTTPS"
+    ],
+    "DurationSeconds": 3,
+    "Streams": 1,
+    "HistoryColumnsVerified": true
+  }
+}

@@ -68,7 +68,8 @@ internal static class SandboxTests
         {
             var run = await Coordinator("native-deadline").RunAsync(ServerCatalog.Custom("127.0.0.1", 55208, EngineKind.Iperf2),
                 options with { Direction = TestDirection.Download, Transport = TransportKind.Udp, TimeoutSeconds = 5 }, null, null, CancellationToken.None);
-            Require(run.Status == RunStatus.Timeout && run.ErrorCode == "RUN_DEADLINE", JsonSerializer.Serialize(run, Json));
+            Require(run.Status == RunStatus.Timeout && run.ErrorCode == "START_TIMEOUT"
+                && run.Stages.All(x => x.Stage != RunStage.Transferring), JsonSerializer.Serialize(run, Json));
         });
         await Check("Отмена первого направления не запускает второе", async () =>
         {
@@ -122,15 +123,15 @@ internal static class SandboxTests
             await File.WriteAllTextAsync(Path.Combine(directory, "iperf2-100mbit.json"), JsonSerializer.Serialize(run, Json));
             Console.WriteLine($"      TX={run.SenderMbps:F1}; приём={run.ReceiverMbps:F1} Мбит/с; потери={run.LostPercent:F1}%");
         });
-        await Check("Настоящий iPerf2: все 8 профилей архива и отдельный reverse", async () =>
+        await Check("Настоящий iPerf2: исходные 12 профилей без reverse", async () =>
         {
             var server = ServerCatalog.LoadPublished().Single(x => x.Id == "beeline-iperf2") with { Host = "127.0.0.1", Port = 55214, Ports = [55214] };
             var runs = await Pair(server, "beeline-profiles", options with { Transport = TransportKind.Udp });
-            Require(runs.Count == 9 && runs.Take(8).All(x => x.Status == RunStatus.Measured && x.ReceiverMbps > 0)
-                && runs[^1].Direction == TestDirection.Download && runs[^1].Status == RunStatus.Timeout, JsonSerializer.Serialize(runs, Json));
-            Require(runs.Take(8).All(x => x.EngineSha256 == BundledIperf.Iperf2LegacySha256)
+            Require(runs.Count == 12 && runs.Take(12).All(x => x.Status == RunStatus.Measured && x.ReceiverMbps > 0)
+                && runs.All(x => x.Direction == TestDirection.Upload), JsonSerializer.Serialize(runs, Json));
+            Require(runs.Take(12).All(x => x.EngineSha256 == BundledIperf.Iperf2LegacySha256)
                 && DirectionObservation.From(runs).Verdict == DirectionVerdict.UploadObserved, "Использован несовместимый клиент или выдумана загрузка старого сервера");
-            Require(runs.Take(8).Select(x => x.Options.ParallelStreams).SequenceEqual(new[] {1,5,10,20,1,5,10,20}), "Потоки профилей не совпадают с архивом");
+            Require(runs.Take(12).Select(x => x.Options.ParallelStreams).SequenceEqual(new[] {1,5,10,20,1,5,10,20,1,5,10,20}), "Потоки профилей не совпадают с архивом");
         });
         await Check("Билайн: совместимый клиент на канале 250 Мбит/с не ограничен до 100", async () =>
         {
@@ -153,8 +154,24 @@ internal static class SandboxTests
                 && first.EngineSha256 == BundledIperf.Iperf2Sha256 && second.EngineSha256 == BundledIperf.Iperf2Sha256
                 && second.ReceiverStreams == 5 && !first.Limitations.Any(x => x.StartsWith("TX-only:")), JsonSerializer.Serialize(new[] { first, second }, Json));
             Require(Directory.GetFiles(first.DebugDirectory!, "process-*-stdout.txt").Length == 4
-                && Directory.GetFiles(second.DebugDirectory!, "process-*-stdout.txt").Length == 2, "Выбор клиента повторяется перед каждым профилем");
+                && Directory.GetFiles(second.DebugDirectory!, "process-*-stdout.txt").Length == 1, "Выбор клиента или запрос версии повторяется перед каждым профилем");
         });
+        foreach (bool userCancelled in new[] { false, true })
+            await Check("iPerf2: завершённый TX при " + (userCancelled ? "отмене совместимости" : "общем таймауте совместимости"), async () =>
+            {
+                var server = ServerCatalog.Custom("127.0.0.1", 55208, EngineKind.Iperf2) with { Iperf2Legacy = true };
+                using var stop = new CancellationTokenSource();
+                if (userCancelled) stop.CancelAfter(TimeSpan.FromSeconds(9));
+                var run = await Coordinator("iperf2-compatibility-stop-" + userCancelled).RunAsync(server,
+                    options with { Direction = TestDirection.Upload, Transport = TransportKind.Udp,
+                        BandwidthLimitBitsPerSecond = 1_000_000, ProbeIperf2Client = true, TimeoutSeconds = userCancelled ? 25 : 9 },
+                    null, null, stop.Token);
+                Require(run.SenderMbps > 0 && run.ReceiverMbps == null
+                    && run.Status == (userCancelled ? RunStatus.Cancelled : RunStatus.Partial)
+                    && run.ErrorCode == (userCancelled ? "USER_CANCELLED" : "IPERF2_RECEIVER_UNCONFIRMED"), JsonSerializer.Serialize(run, Json));
+                Require(Directory.GetFiles(run.DebugDirectory!, "process-*-stdout.txt").Length == 4,
+                    "Таймаут не пришёл на повторную проверку клиента");
+            });
         foreach (var capacity in new[] { (Port: 55212, Mbps: 40), (Port: 55213, Mbps: 300) })
             await Check($"iPerf2: приём на канале {capacity.Mbps} Мбит/с без привязки к тарифу 100", async () =>
             {
@@ -175,7 +192,7 @@ internal static class SandboxTests
             var second = await coordinator.RunAsync(server, options with { Direction = TestDirection.Upload }, null, null, CancellationToken.None);
             Require(first.Status == RunStatus.Measured && first.Port == 55201 && second.Status == RunStatus.Measured && second.Port == 55201,
                 JsonSerializer.Serialize(new[] { first, second }, Json));
-            Require(Directory.GetFiles(second.DebugDirectory!, "process-*-stdout.txt").Length == 2, "Повторяется перебор уже проверенных портов");
+            Require(Directory.GetFiles(second.DebugDirectory!, "process-*-stdout.txt").Length == 1, "Повторяется перебор уже проверенных портов или запрос версии");
         });
         await Check("Сбой создания debug не блокирует следующий запуск", async () =>
         {
