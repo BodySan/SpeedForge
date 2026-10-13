@@ -95,6 +95,15 @@ public sealed class RunResult
     public string Source { get; set; } = "";
     public string PublishedStatus { get; set; } = "";
     public string? ResolvedIp { get; set; }
+    public string? ClientExternalIp { get; set; }
+    public string? ClientHttpIp { get; set; }
+    public string? ClientIpSource { get; set; }
+    public DateTimeOffset? ClientIpObservedAt { get; set; }
+    [JsonIgnore] public string ClientIpLabel => ClientExternalIp ?? "—";
+    [JsonIgnore] public string ClientIpDescription => ClientExternalIp == null ? "Внешний IP перед проверкой не определён; для старых записей он не сохранялся."
+        : $"Внешний IP перед проверкой: {ClientExternalIp}. Источник: {ClientIpSource}."
+            + (ClientHttpIp != null && ClientHttpIp != ClientExternalIp ? $"\nЧерез HTTPS: {ClientHttpIp}. Маршруты VPN для UDP и HTTPS могут различаться." : "")
+            + (ClientIpObservedAt.HasValue ? $"\nОпределён: {ClientIpObservedAt.Value.ToLocalTime():dd.MM.yyyy HH:mm:ss}." : "");
     public EngineKind Engine { get; set; }
     public string? EngineVersion { get; set; }
     public string? EngineSha256 { get; set; }

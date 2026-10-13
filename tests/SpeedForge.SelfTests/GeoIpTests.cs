@@ -75,6 +75,26 @@ internal static class GeoIpTests
             using var client = new NetworkIdentityClient(handler,(_,_) => Task.FromResult<IPAddress?>(null));
             Require(client.GetAsync(true,CancellationToken.None).GetAwaiter().GetResult().ExternalIp == null);
         });
+        test("VPN: один клиент обновляет IP и GeoIP без перезапуска и кэша прежнего адреса", () =>
+        {
+            string current = "8.8.8.8";
+            using var handler = new FakeHttp(url => url.Contains("ifconfig") ? "{\"ip\":\"" + current + "\"}"
+                : url.Contains("ipwho") ? "{\"ip\":\"" + current + "\",\"latitude\":55,\"longitude\":37}" : "{}");
+            using var client = new NetworkIdentityClient(handler, (_, _) => Task.FromResult<IPAddress?>(IPAddress.Parse(current)));
+            Require(client.GetAsync(true, CancellationToken.None).GetAwaiter().GetResult().ExternalIp == current);
+            current = "1.1.1.1";
+            var changed = client.GetAsync(true, CancellationToken.None).GetAwaiter().GetResult();
+            Require(changed.ExternalIp == current && changed.HttpIp == current && changed.Location != null);
+            Require(handler.Urls.Count(x => x.Contains("ifconfig")) == 2 && handler.Urls.Count(x => x.Contains("ipwho")) == 2);
+        });
+        test("IP: зависший HTTPS не теряет готовый STUN-кворум и не задерживает запуск более 3 секунд", () =>
+        {
+            using var handler = new HangingHttp();
+            using var client = new NetworkIdentityClient(handler, (_, _) => Task.FromResult<IPAddress?>(IPAddress.Parse("8.8.8.8")));
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var result = client.GetAsync(false, CancellationToken.None).GetAwaiter().GetResult();
+            Require(result.ExternalIp == "8.8.8.8" && result.HttpIp == null && watch.Elapsed.TotalSeconds < 4);
+        });
     }
     private static byte[] Packet(string ip, byte[] transaction)
     {
@@ -89,8 +109,14 @@ internal static class GeoIpTests
         public List<string> Urls { get; } = [];
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            if (request.Headers.CacheControl is not { NoCache: true, NoStore: true }) throw new InvalidOperationException("IP-запрос допускает кэшированный ответ");
             string url = request.RequestUri!.AbsoluteUri; Urls.Add(url);
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(response(url),System.Text.Encoding.UTF8,"application/json") });
         }
+    }
+    private sealed class HangingHttp : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        { await Task.Delay(Timeout.Infinite, cancellationToken); throw new InvalidOperationException(); }
     }
 }

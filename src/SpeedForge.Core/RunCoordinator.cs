@@ -12,7 +12,8 @@ public sealed class RunCoordinator(TrustedTools trusted, RunStore store)
     private readonly HttpMeasurement _http = new();
 
     public async Task<RunResult> RunAsync(ServerEntry server, TestOptions options, string? ephemeralKey,
-        IProgress<string>? progress, CancellationToken ct, IProgress<MeasurementProgress>? live = null, IProgress<RunStageProgress>? stages = null)
+        IProgress<string>? progress, CancellationToken ct, IProgress<MeasurementProgress>? live = null, IProgress<RunStageProgress>? stages = null,
+        ClientNetworkSnapshot? clientNetwork = null)
     {
         var userCancellation = ct;
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(options.TimeoutSeconds ?? 45));
@@ -25,7 +26,9 @@ public sealed class RunCoordinator(TrustedTools trusted, RunStore store)
             ProfileId = server.Id, Region = server.Region, Country = server.Country, Group = server.Group,
             City = server.City, Host = server.Host, Port = server.Port, Source = server.Source,
             PublishedStatus = server.Provenance, Engine = server.Engine, Options = options,
-            Direction = options.Direction, Transport = options.Transport, IpFamily = options.IpFamily
+            Direction = options.Direction, Transport = options.Transport, IpFamily = options.IpFamily,
+            ClientExternalIp = clientNetwork?.ExternalIp, ClientHttpIp = clientNetwork?.HttpIp,
+            ClientIpSource = clientNetwork?.Source, ClientIpObservedAt = clientNetwork?.ObservedAt
         };
         long started = Stopwatch.GetTimestamp();
         var events = new ConcurrentQueue<RunStageProgress>();
@@ -65,6 +68,7 @@ public sealed class RunCoordinator(TrustedTools trusted, RunStore store)
         {
             run.Diagnostics = new RunDiagnostics(store.DirectoryPath, run.RunId);
             run.DebugDirectory = run.Diagnostics.DirectoryPath;
+            if (clientNetwork != null) run.Diagnostics.Event("client.network", $"external={clientNetwork.ExternalIp ?? "unknown"}; https={clientNetwork.HttpIp ?? "unknown"}; source={clientNetwork.Source}; observed={clientNetwork.ObservedAt:O}");
             run.Diagnostics.Event("run.start", $"{server.Engine} {options.Transport} {options.Direction}; host={server.Host}; ports={string.Join(',', server.Ports.Length > 0 ? server.Ports : [server.Port])}; duration={options.DurationSeconds}; streams={options.ParallelStreams}; cap={options.BandwidthLimitBitsPerSecond}; timeout={options.TimeoutSeconds ?? 45}; private={options.AllowPrivateTargets}");
             options.Validate();
             stageProgress.Report(new(RunStage.Preparing));

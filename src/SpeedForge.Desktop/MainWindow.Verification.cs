@@ -13,6 +13,7 @@ public partial class MainWindow
     public async Task<bool> VerifySandboxAsync(string directory, bool resetOnly = false, bool geoOnly = false, bool serversOnly = false)
     {
         Directory.CreateDirectory(directory);
+        _verificationNetworkLookup = (_, _) => Task.FromResult(new NetworkIdentity("8.8.8.8", "8.8.8.8", "Sandbox"));
         var cases = new List<object>();
         int failed = 0;
         void Require(bool value, string why) { if (!value) throw new InvalidOperationException(why); }
@@ -152,10 +153,10 @@ public partial class MainWindow
                 && _session.Skip(1).All(x => !x.Options.Iperf2SenderOnly && x.Options.BandwidthLimitBitsPerSecond == 0 && x.Status == RunStatus.Measured),
                 "UDP-тариф или режим Билайна перенесён на внешнюю проверку");
         });
-        await Test("Версия 1.1.0 и многоразмерная иконка встроены в exe", () =>
+        await Test("Версия 1.1.1 и многоразмерная иконка встроены в exe", () =>
         {
-            Require(typeof(MainWindow).Assembly.GetName().Version == new Version(1,1,0,0), "Неверная версия assembly");
-            Require(Icon != null && Title.Contains("1.1.0", StringComparison.Ordinal), "Нет иконки или версии в окне");
+            Require(typeof(MainWindow).Assembly.GetName().Version == new Version(1,1,1,0), "Неверная версия assembly");
+            Require(Icon != null && Title.Contains("1.1.1", StringComparison.Ordinal), "Нет иконки или версии в окне");
             var resource = Application.GetResourceStream(new Uri("pack://application:,,,/Assets/SpeedForge.ico"));
             using var stream = resource.Stream;
             var decoder = new System.Windows.Media.Imaging.IconBitmapDecoder(stream, System.Windows.Media.Imaging.BitmapCreateOptions.PreservePixelFormat,
@@ -379,6 +380,65 @@ public partial class MainWindow
             await RefreshNetworkAsync((_,_) => Task.FromResult(new NetworkIdentity(null,null,"Unavailable")));
             Require(CurrentServer().Id == selected && RunButton.IsEnabled && ConnectionInfo.Text.Contains("недоступен"), "Ошибка геолокации заблокировала приложение");
         });
+        await Test("IP: два нажатия обновляют адрес без перезапуска и сохраняют разные IP в истории", async () =>
+        {
+            string address = "8.8.8.8"; int lookups = 0;
+            _verificationNetworkLookup = (geo, _) =>
+            { Require(!geo, "GeoIP задерживает запуск нагрузки"); lookups++; return Task.FromResult(new NetworkIdentity(address, address, "Sandbox")); };
+            Configure(Http("both"));
+            var selected = ServerCombo.SelectedItem;
+            await Click();
+            Require(_session.Count == 2 && _session.All(x => x.ClientExternalIp == address && x.ClientIpObservedAt <= x.Started), "Первый IP не записан до сохранения результата");
+            address = "1.1.1.1";
+            await Click();
+            Require(lookups == 2 && ConnectionInfo.Text.Contains(address) && _session.All(x => x.ClientExternalIp == address)
+                && ReferenceEquals(selected, ServerCombo.SelectedItem), "Повторный запуск использовал старый IP или заменил сервер");
+            var stored = _store.Recent(4);
+            Require(stored.Take(2).All(x => x.ClientExternalIp == address) && stored.Skip(2).All(x => x.ClientExternalIp == "8.8.8.8"), "Сохранённая история изменила прежний IP");
+            var reopened = new RunStore(_store.DirectoryPath).Recent(4);
+            Require(reopened.Select(x => x.ClientExternalIp).SequenceEqual(stored.Select(x => x.ClientExternalIp)), "IP потерян после чтения файла истории");
+            Navigate(1); await Task.Delay(100); UpdateLayout();
+            var column = HistoryList.Columns.OfType<DataGridTextColumn>().SingleOrDefault(x => (x.Binding as System.Windows.Data.Binding)?.Path.Path == nameof(RunResult.ClientIpLabel));
+            Require(column != null && HistoryList.Columns.Sum(x => x.ActualWidth) <= HistoryList.ActualWidth + 1,
+                "Колонка IP отсутствует или вытесняет таблицу");
+            SavePreview(Path.Combine(directory, "history-client-ip.png")); Navigate(0);
+        });
+        await Test("IP: позднее обновление шапки не подменяет IP уже начатой проверки", async () =>
+        {
+            _verificationNetworkLookup = (_, _) => Task.FromResult(new NetworkIdentity("8.8.8.8", "1.1.1.1", "STUN"));
+            Configure(Http("both")); RunButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Require(_running != null, "Проверка не началась");
+            ApplyNetworkIdentity(new("9.9.9.9", null, "Late"), false, _serverSelectionGeneration, false);
+            await _activeUiTask!;
+            Require(_session.Count == 2 && _session.All(x => x.ClientExternalIp == "8.8.8.8" && x.ClientHttpIp == "1.1.1.1")
+                && _store.Recent(2).All(x => x.ClientExternalIp == "8.8.8.8"), "В результат попал поздний IP из шапки");
+        });
+        await Test("IP: недоступные сервисы не блокируют скорость и не сохраняют старый адрес", async () =>
+        {
+            foreach (bool throws in new[] { false, true })
+            {
+                ApplyNetworkIdentity(new("8.8.8.8", null, "Previous"), false, _serverSelectionGeneration, false);
+                _verificationNetworkLookup = (_, _) => throws ? Task.FromException<NetworkIdentity>(new System.Net.Http.HttpRequestException("sandbox"))
+                    : Task.FromResult(new NetworkIdentity(null, null, "Unavailable"));
+                Configure(Http("both")); await Click();
+                Require(ConnectionInfo.Text.Contains("недоступен") && _session.Count == 2
+                    && _session.All(x => x.Status == RunStatus.Measured && x.ClientExternalIp == null && x.ClientIpLabel == "—"),
+                    "Сбой IP заблокировал нагрузку или сохранил старый адрес");
+            }
+        });
+        await Test("IP: остановка во время обновления отменяет запуск и сохраняет следующую проверку", async () =>
+        {
+            Configure(Http("both")); int history = _store.Recent(500).Count;
+            _verificationNetworkLookup = async (_, ct) => { await Task.Delay(Timeout.Infinite, ct); return new(null, null, "Unavailable"); };
+            RunButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Require(_running != null && PhaseTitle.Text.Contains("IP"), "Не показана подготовка IP");
+            RunButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await _activeUiTask!;
+            Require(_session.Count == 0 && _store.Recent(500).Count == history && _running == null && RunButton.IsEnabled,
+                "Отмена обновления всё равно запустила нагрузку или заблокировала кнопку");
+            _verificationNetworkLookup = (_, _) => Task.FromResult(new NetworkIdentity("1.1.1.1", null, "Sandbox"));
+            await Click(); Require(_session.Count == 2 && _session.All(x => x.ClientExternalIp == "1.1.1.1"), "После отмены не работает следующий запуск");
+        });
+        _verificationNetworkLookup = (_, _) => Task.FromResult(new NetworkIdentity("8.8.8.8", "8.8.8.8", "Sandbox"));
         await Test("Билайн: закрытый список 100–1000 и сохранение выбранного тарифа", () =>
         {
             Require(!BeelineTariff.IsEditable && BeelineTariff.Items.Cast<int>().SequenceEqual(Enumerable.Range(1,10).Select(x => x * 100)), "Неверные значения списка тарифа");

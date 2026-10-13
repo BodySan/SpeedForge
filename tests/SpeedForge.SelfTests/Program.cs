@@ -14,7 +14,7 @@ if (args.Length >= 2 && args[0] == "--compare-beeline-console") return await Bee
 if (args.Length >= 2 && args[0] == "--audit-timings") return await TimingAudit.RunAsync(Path.GetFullPath(args[1]));
 if (args.Length >= 2 && args[0] == "--audit-beeline") return await BeelineAudit.RunAsync(Path.GetFullPath(args[1]), args.Contains("--local"), args.Contains("--archive-rates"), args.Contains("--latency"));
 if (args.Length >= 2 && args[0] == "--sandbox-serve") return await SandboxInfrastructure.ServeAsync(Path.GetFullPath(args[1]));
-if (args.Length >= 2 && args[0] == "--sandbox-test") return await SandboxTests.RunAsync(Path.GetFullPath(args[1]), args.Contains("--iperf2-only"));
+if (args.Length >= 2 && args[0] == "--sandbox-test") return await SandboxTests.RunAsync(Path.GetFullPath(args[1]), args.Contains("--iperf2-only"), args.Contains("--working-port-only"));
 if (args.Length >= 2 && args[0] == "--tools-json")
 {
     var iperf3 = await BundledIperf.RequireAsync(CancellationToken.None, EngineKind.Iperf3);
@@ -223,14 +223,21 @@ Case("История и отчёт: round-trip", () =>
     {
         var store = new RunStore(dir);
         var run = Result(); run.Group = "Company"; run.ResolvedIp = "192.168.10.1";
+        run.ClientExternalIp = "8.8.8.8"; run.ClientHttpIp = "1.1.1.1"; run.ClientIpSource = "STUN"; run.ClientIpObservedAt = DateTimeOffset.Now;
         store.AppendAsync(run, CancellationToken.None).GetAwaiter().GetResult();
         var loaded = store.Recent(1).Single();
         Require(loaded.RunId == run.RunId && loaded.ResolvedIp == run.ResolvedIp);
+        Require(loaded.ClientExternalIp == run.ClientExternalIp && loaded.ClientHttpIp == run.ClientHttpIp && loaded.ClientIpObservedAt == run.ClientIpObservedAt);
         Require(ReportExport.TechnicalReport(loaded).Contains("192.168.10.1"));
     }
     finally { if (Directory.Exists(dir)) Directory.Delete(dir, true); }
 });
 Case("iPerf3 JSON array отклонён без исключения", () => { var r = Result(); Iperf3Parser.Apply("[]", r); Require(r.Status == RunStatus.EngineError); });
+Case("История: старая запись без исходного IP остаётся неизвестной", () =>
+{
+    var old = System.Text.Json.JsonSerializer.Deserialize<RunResult>("{\"SchemaVersion\":1,\"ResolvedIp\":\"8.8.8.8\"}")!;
+    Require(old.ClientExternalIp == null && old.ClientIpLabel == "—" && old.ResolvedIp == "8.8.8.8");
+});
 Case("iPerf2 NaN в потерях отклонён", () =>
 {
     var r = Result(TransportKind.Udp);

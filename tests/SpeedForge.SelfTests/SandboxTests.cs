@@ -4,13 +4,14 @@ using System.Text.Encodings.Web;
 
 internal static class SandboxTests
 {
-    public static async Task<int> RunAsync(string directory, bool iperf2Only = false)
+    public static async Task<int> RunAsync(string directory, bool iperf2Only = false, bool workingPortOnly = false)
     {
         Directory.CreateDirectory(directory);
         var cases = new List<object>();
         int passed = 0, failed = 0;
         async Task Check(string name, Func<Task> action)
         {
+            if (workingPortOnly && name != "Подтверждённый резервный порт используется следующим направлением") return;
             if (iperf2Only && !name.Contains("iPerf2", StringComparison.Ordinal)) return;
             try { await action(); passed++; cases.Add(new { Name = name, Passed = true }); Console.WriteLine("PASS  " + name); }
             catch (Exception e) { failed++; cases.Add(new { Name = name, Passed = false, Error = e.ToString() }); Console.WriteLine("FAIL  " + name + " — " + e); }
@@ -187,7 +188,9 @@ internal static class SandboxTests
         await Check("Подтверждённый резервный порт используется следующим направлением", async () =>
         {
             var coordinator = Coordinator("working-port-cache");
-            var server = ServerCatalog.Custom("127.0.0.1", 55203, EngineKind.Iperf3) with { Ports = [55203, 55201] };
+            // A closed first port isolates caching from asynchronous teardown of rejected proxy sessions.
+            // Control-reset fallback is exercised by the separate test above.
+            var server = ServerCatalog.Custom("127.0.0.1", 55206, EngineKind.Iperf3) with { Ports = [55206, 55201] };
             var first = await coordinator.RunAsync(server, options with { Direction = TestDirection.Download }, null, null, CancellationToken.None);
             var second = await coordinator.RunAsync(server, options with { Direction = TestDirection.Upload }, null, null, CancellationToken.None);
             Require(first.Status == RunStatus.Measured && first.Port == 55201 && second.Status == RunStatus.Measured && second.Port == 55201,

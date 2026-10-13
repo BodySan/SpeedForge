@@ -15,6 +15,8 @@ public sealed record GeoPoint(double Latitude, double Longitude)
 public sealed record NetworkIdentity(string? ExternalIp, string? HttpIp, string Source,
     string? City = null, string? Organization = null, int? Asn = null, GeoPoint? Location = null);
 
+public sealed record ClientNetworkSnapshot(string? ExternalIp, string? HttpIp, string Source, DateTimeOffset ObservedAt);
+
 public sealed class NetworkIdentityClient : IDisposable
 {
     private readonly HttpClient _http;
@@ -24,23 +26,38 @@ public sealed class NetworkIdentityClient : IDisposable
         Func<string, CancellationToken, Task<IPAddress?>>? stun = null)
     {
         _http = new(handler ?? new SocketsHttpHandler { AllowAutoRedirect = false,
-            AutomaticDecompression = DecompressionMethods.None, ConnectTimeout = TimeSpan.FromSeconds(3) })
+            AutomaticDecompression = DecompressionMethods.None, ConnectTimeout = TimeSpan.FromSeconds(3),
+            PooledConnectionLifetime = TimeSpan.Zero })
             { Timeout = Timeout.InfiniteTimeSpan };
         _http.DefaultRequestHeaders.UserAgent.ParseAdd("SpeedForge/1.0 GeoIP");
+        _http.DefaultRequestHeaders.CacheControl = new() { NoCache = true, NoStore = true };
         _stun = stun ?? StunAsync;
     }
     public async Task<NetworkIdentity> GetAsync(bool geolocation, CancellationToken ct)
     {
-        var udp = new[] { _stun("stun.cloudflare.com", ct), _stun("global.stun.twilio.com", ct) };
-        var httpTask = ExternalHttpIpAsync(ct);
-        await Task.WhenAll(udp.Cast<Task>().Append(httpTask));
-        var observed = udp.Select(x => x.Result).ToArray();
-        var httpIp = await httpTask;
+        var identity = await GetAddressAsync(ct);
+        return geolocation ? await EnrichAsync(identity, ct) : identity;
+    }
+    private async Task<NetworkIdentity> GetAddressAsync(CancellationToken ct)
+    {
+        using var budget = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        budget.CancelAfter(TimeSpan.FromSeconds(3));
+        var udp = new[] { _stun("stun.cloudflare.com", budget.Token), _stun("global.stun.twilio.com", budget.Token) };
+        var httpTask = ExternalHttpIpAsync(budget.Token);
+        try { await Task.WhenAll(udp.Cast<Task>().Append(httpTask)); }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested && budget.IsCancellationRequested) { }
+        ct.ThrowIfCancellationRequested();
+        var observed = udp.Select(x => x.IsCompletedSuccessfully ? x.Result : null).ToArray();
+        var httpIp = httpTask.IsCompletedSuccessfully ? httpTask.Result : null;
         var consensus = observed.Where(x => x != null && SecurityPolicy.IsPublicUnicast(x))
             .GroupBy(x => x!.ToString()).FirstOrDefault(x => x.Count() >= 2)?.Key;
         string? address = consensus ?? httpIp;
-        var identity = new NetworkIdentity(address, httpIp, consensus != null ? "STUN" : httpIp != null ? "HTTPS" : "Unavailable");
-        if (!geolocation || address == null) return identity;
+        return new NetworkIdentity(address, httpIp, consensus != null ? "STUN" : httpIp != null ? "HTTPS" : "Unavailable");
+    }
+    public async Task<NetworkIdentity> EnrichAsync(NetworkIdentity identity, CancellationToken ct)
+    {
+        string? address = identity.ExternalIp;
+        if (address == null) return identity;
         if (_geoCache.TryGetValue(address, out var cached) && DateTimeOffset.UtcNow - cached.Time < TimeSpan.FromMinutes(15))
             return identity with { City = cached.Info.City, Organization = cached.Info.Organization, Asn = cached.Info.Asn, Location = cached.Info.Location };
         var geo = GeoAsync(address, ct);

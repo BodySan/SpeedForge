@@ -14,6 +14,9 @@ public partial class MainWindow
     private CancellationTokenSource? _networkRefresh;
     private Task? _networkStartupTask;
     private NetworkIdentity? _networkIdentity;
+    private ClientNetworkSnapshot? _runClientNetwork;
+    private Func<bool, CancellationToken, Task<NetworkIdentity>>? _verificationNetworkLookup;
+    private Task? _networkEnrichmentTask;
 
     private void LoadNetworkPreferences(bool loadOnStart)
     {
@@ -60,15 +63,57 @@ public partial class MainWindow
         ConnectionInfo.Text = "IP: определяем…";
         try
         {
-            var identity = await (lookup ?? _network.GetAsync)(geo, token);
+            var identity = await (lookup ?? _verificationNetworkLookup ?? _network.GetAsync)(geo, token);
             if (generation != _networkGeneration || token.IsCancellationRequested) return;
             ApplyNetworkIdentity(identity, geo && GeoIpCheck.IsChecked == true, selection);
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)
-        { if (generation == _networkGeneration) { ConnectionInfo.Text = "IP: недоступен"; Log("Определение IP: " + ex.GetType().Name); } }
+        { if (generation == _networkGeneration) { _networkIdentity = null; ConnectionInfo.Text = "IP: недоступен"; Log("Определение IP: " + ex.GetType().Name); } }
     }
-    private void ApplyNetworkIdentity(NetworkIdentity identity, bool geo, int selection)
+    private async Task<ClientNetworkSnapshot?> RefreshNetworkForRunAsync(CancellationToken ct)
+    {
+        int generation = ++_networkGeneration, selection = _serverSelectionGeneration;
+        _networkRefresh?.Cancel(); _networkRefresh?.Dispose();
+        _networkRefresh = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var token = _networkRefresh.Token;
+        _networkIdentity = null;
+        ConnectionInfo.Text = "IP: определяем…"; ConnectionInfo.ToolTip = null;
+        PhaseTitle.Text = "Обновляем внешний IP…";
+        try
+        {
+            var identity = await (_verificationNetworkLookup ?? _network.GetAsync)(false, token)
+                .WaitAsync(TimeSpan.FromSeconds(3.5), ct);
+            ct.ThrowIfCancellationRequested();
+            if (generation != _networkGeneration) return null;
+            ApplyNetworkIdentity(identity, false, selection, false);
+            var snapshot = new ClientNetworkSnapshot(identity.ExternalIp, identity.HttpIp, identity.Source, DateTimeOffset.Now);
+            if (GeoIpCheck.IsChecked == true && identity.ExternalIp != null && _verificationNetworkLookup == null)
+                _networkEnrichmentTask = EnrichNetworkDisplayAsync(identity, generation, selection, token);
+            return snapshot;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        { ConnectionInfo.Text = "IP: определение отменено"; throw; }
+        catch (Exception ex)
+        {
+            _networkRefresh?.Cancel();
+            if (generation == _networkGeneration)
+            { _networkIdentity = null; ConnectionInfo.Text = "IP: недоступен"; Log("Обновление IP: " + ex.GetType().Name); }
+            return null;
+        }
+    }
+    private async Task EnrichNetworkDisplayAsync(NetworkIdentity identity, int generation, int selection, CancellationToken ct)
+    {
+        try
+        {
+            var enriched = await _network.EnrichAsync(identity, ct);
+            if (generation == _networkGeneration && !ct.IsCancellationRequested && GeoIpCheck.IsChecked == true)
+                ApplyNetworkIdentity(enriched, true, selection, false);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex) { Log("Геолокация: " + ex.GetType().Name); }
+    }
+    private void ApplyNetworkIdentity(NetworkIdentity identity, bool geo, int selection, bool allowServerSelection = true)
     {
         _networkIdentity = identity;
         string address = identity.ExternalIp ?? "недоступен";
@@ -82,8 +127,8 @@ public partial class MainWindow
             else if (identity.Asn != null) ConnectionInfo.Text += " · AS" + identity.Asn;
         }
         string explanation = $"Внешний IP: {address}. Источник: {identity.Source}.";
-        if (geo) explanation += " Геолокация по IP приблизительная; VPN может менять выбранный город.";
-        if (geo && identity.Location?.Valid == true && selection == _serverSelectionGeneration && _running == null
+        if (geo) explanation += " Геолокация по IP приблизительная; VPN может менять определяемый город.";
+        if (allowServerSelection && geo && identity.Location?.Valid == true && selection == _serverSelectionGeneration && _running == null
             && string.IsNullOrWhiteSpace(CustomHost.Text) && string.IsNullOrWhiteSpace(CustomUrl.Text))
         {
             var nearest = NearestServer.Choose(_servers, identity.Location);

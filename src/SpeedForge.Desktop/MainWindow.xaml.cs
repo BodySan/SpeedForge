@@ -251,8 +251,15 @@ public partial class MainWindow : Window
         if (_running != null) { Log("Проверка уже выполняется"); return; }
         _running = new CancellationTokenSource();
         _batchWatch = Stopwatch.StartNew();
+        ResetResult();
         Busy(true);
-        try { await action(); }
+        try
+        {
+            _runClientNetwork = null;
+            _runClientNetwork = await RefreshNetworkForRunAsync(_running.Token);
+            _running.Token.ThrowIfCancellationRequested();
+            await action();
+        }
         catch (OperationCanceledException) { PhaseTitle.Text = "Проверка остановлена"; }
         catch (Exception ex)
         {
@@ -265,6 +272,7 @@ public partial class MainWindow : Window
         {
             _batchWatch?.Stop();
             _running.Dispose(); _running = null;
+            _runClientNetwork = null;
             Busy(false);
             RenderChart();
             if (_closing) Close();
@@ -318,7 +326,7 @@ public partial class MainWindow : Window
         timer.Tick += (_, _) => UpdateClock();
         timer.Start();
         RunResult result;
-        try { result = await _coordinator.RunAsync(server, options, SessionKey.Password, progress, _running!.Token, live, phases); }
+        try { result = await _coordinator.RunAsync(server, options, SessionKey.Password, progress, _running!.Token, live, phases, _runClientNetwork); }
         finally { timer.Stop(); }
         _displayGeneration++;
         _lastResult = result;
