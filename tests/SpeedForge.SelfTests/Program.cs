@@ -9,12 +9,14 @@ if (args.Contains("--hold-process"))
 }
 if (args.Length >= 2 && args[0] == "--audit-catalog") return await CatalogAudit.RunAsync(Path.GetFullPath(args[1]), args.Contains("--udp"),
     Array.IndexOf(args, "--only") is var selectedIndex && selectedIndex >= 0 ? args.ElementAtOrDefault(selectedIndex + 1) ?? throw new ArgumentException("Укажите записи после --only") : null);
+if (args.Length >= 2 && args[0] == "--audit-http-candidates") return await HttpCandidateAudit.RunAsync(Path.GetFullPath(args[1]));
+if (args.Length >= 2 && args[0] == "--audit-beeline-tariffs") return await BeelineTariffAudit.RunAsync(Path.GetFullPath(args[1]));
 if (args.Length >= 2 && args[0] == "--parse-console") return await ConsoleParserAudit.RunAsync(Path.GetFullPath(args[1]));
 if (args.Length >= 2 && args[0] == "--compare-beeline-console") return await BeelineConsoleComparison.RunAsync(Path.GetFullPath(args[1]));
 if (args.Length >= 2 && args[0] == "--audit-timings") return await TimingAudit.RunAsync(Path.GetFullPath(args[1]));
 if (args.Length >= 2 && args[0] == "--audit-beeline") return await BeelineAudit.RunAsync(Path.GetFullPath(args[1]), args.Contains("--local"), args.Contains("--archive-rates"), args.Contains("--latency"));
 if (args.Length >= 2 && args[0] == "--sandbox-serve") return await SandboxInfrastructure.ServeAsync(Path.GetFullPath(args[1]));
-if (args.Length >= 2 && args[0] == "--sandbox-test") return await SandboxTests.RunAsync(Path.GetFullPath(args[1]), args.Contains("--iperf2-only"), args.Contains("--working-port-only"));
+if (args.Length >= 2 && args[0] == "--sandbox-test") return await SandboxTests.RunAsync(Path.GetFullPath(args[1]), args.Contains("--iperf2-only"), args.Contains("--working-port-only"), args.Contains("--busy-only"));
 if (args.Length >= 2 && args[0] == "--tools-json")
 {
     var iperf3 = await BundledIperf.RequireAsync(CancellationToken.None, EngineKind.Iperf3);
@@ -43,6 +45,7 @@ const string Good = """
 """;
 GeoIpTests.Register(Case);
 SpeedRegressionTests.Register(Case);
+AuditRegressionTests.Register(Case);
 ServerOverrideTests.Register(Case);
 const string NoData = """
 {"end":{"sum_sent":{"bytes":0,"bits_per_second":0},"sum_received":{"bytes":0,"bits_per_second":0}}}
@@ -56,7 +59,7 @@ Case("Каждая точка имеет источник и статус", () =
 Case("Билайн iPerf2 встроен в каталог", () => Require(ServerCatalog.LoadPublished().Any(x => x.Engine == EngineKind.Iperf2 && x.Host == "speedcheck.gldn.net" && x.Port == 5001)));
 Case("Каждый сервер проверен, TCP и UDP имеют отдельные наблюдения", () =>
 {
-    Require(PublishedObservations.All.Count == 125);
+    Require(PublishedObservations.All.Count == 127);
     Require(ServerCatalog.LoadPublished().All(x => PublishedObservations.All.Any(y => y.ProfileId == x.Id)));
     Require(PublishedObservations.All.Count(x => x.Transport == TransportKind.Udp) == 61);
 });
@@ -309,7 +312,8 @@ if (args.Contains("--http"))
             new TestOptions(DurationSeconds: 3, AllowPrivateTargets: true, BandwidthLimitBitsPerSecond: 1_000_000_000),
             IPAddress.Loopback, run, null, CancellationToken.None).GetAwaiter().GetResult();
         Require(run.Status == RunStatus.Measured, run.ErrorCode ?? run.Status.ToString());
-        Require(run.ReceiverBytes is >= 32 * 1_048_576 and <= 256L * 1_048_576);
+        Require(run.ReceiverBytes is > 256L * 1_048_576 and <= 375_000_000 && run.Intervals.Count > 0,
+            "Остался потолок 256 МиБ или нет прогресса подтверждённых блоков");
     });
 }
 if (args.Contains("--iperf"))

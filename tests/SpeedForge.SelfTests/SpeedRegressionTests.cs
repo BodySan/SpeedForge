@@ -55,7 +55,7 @@ internal static class SpeedRegressionTests
         {
             var server = ServerCatalog.Custom("127.0.0.1", 5201, EngineKind.Iperf3) with { Ports = Enumerable.Range(5201,16).ToArray() };
             var options = new TestOptions(DurationSeconds: 30, MeasureLatency: true);
-            Require(RunTiming.RunSeconds(server, options) == 117 && RunTiming.RunSeconds(server, options) <= 120,
+            Require(RunTiming.RunSeconds(server, options) == 120,
                 "Не учтены подготовка, все порты, передача и итоговый отчёт");
             Require(RunTiming.CompatibilitySeconds(new TestOptions(DurationSeconds: 30)) <= 120, "Подбор клиента превышает общий предел");
         });

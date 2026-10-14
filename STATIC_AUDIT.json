@@ -1,7 +1,7 @@
 {
-  "checked_at_utc": "2026-10-13T09:30:51.372661+00:00",
+  "checked_at_utc": "2026-10-14T12:05:21.243485+00:00",
   "scope": "Static structure only, not build/test execution",
-  "source_count": 44,
+  "source_count": 47,
   "checks": 25,
   "passed": 25,
   "failed": 0,
@@ -9,7 +9,7 @@
     {
       "name": "C# source files",
       "pass_check": true,
-      "detail": "44"
+      "detail": "47"
     },
     {
       "name": "XML src\\SpeedForge.Desktop\\App.xaml",
@@ -64,7 +64,7 @@
     {
       "name": "Catalog JSON",
       "pass_check": true,
-      "detail": "count=65"
+      "detail": "count=67"
     },
     {
       "name": "Catalog has sources and provenance",
@@ -74,7 +74,7 @@
     {
       "name": "Every catalog entry has an observation",
       "pass_check": true,
-      "detail": "125"
+      "detail": "127"
     },
     {
       "name": "Project paths src\\SpeedForge.Core\\SpeedForge.Core.csproj",

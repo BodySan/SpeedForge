@@ -4,7 +4,7 @@ using System.Text.Encodings.Web;
 
 internal static class SandboxTests
 {
-    public static async Task<int> RunAsync(string directory, bool iperf2Only = false, bool workingPortOnly = false)
+    public static async Task<int> RunAsync(string directory, bool iperf2Only = false, bool workingPortOnly = false, bool busyOnly = false)
     {
         Directory.CreateDirectory(directory);
         var cases = new List<object>();
@@ -12,6 +12,7 @@ internal static class SandboxTests
         async Task Check(string name, Func<Task> action)
         {
             if (workingPortOnly && name != "Подтверждённый резервный порт используется следующим направлением") return;
+            if (busyOnly && !name.StartsWith("iPerf3 занят:")) return;
             if (iperf2Only && !name.Contains("iPerf2", StringComparison.Ordinal)) return;
             try { await action(); passed++; cases.Add(new { Name = name, Passed = true }); Console.WriteLine("PASS  " + name); }
             catch (Exception e) { failed++; cases.Add(new { Name = name, Passed = false, Error = e.ToString() }); Console.WriteLine("FAIL  " + name + " — " + e); }
@@ -87,6 +88,48 @@ internal static class SandboxTests
                 Require(runs.Count == 2 && DirectionObservation.From(runs).Verdict == item.Item3, JsonSerializer.Serialize(runs, Json));
                 Require(runs.All(x => x.EngineSha256 == BundledIperf.ExecutableSha256), "Использован иной измеритель");
             });
+        await Check("HTTP binary/octet-stream измеряется как тестовые данные", async () =>
+        {
+            var run = await Coordinator("binary-type").RunAsync(Http("binary", false), options with { Direction = TestDirection.Download }, null, null, CancellationToken.None);
+            Require(run.Status == RunStatus.Measured && run.ReceiverBytes > 0, JsonSerializer.Serialize(run, Json));
+        });
+        await Check("HTTP отдача без ответа не публикует локальные байты", async () =>
+        {
+            var samples = new System.Collections.Concurrent.ConcurrentBag<MeasurementProgress>();
+            var run = await Coordinator("http-no-ack").RunAsync(Http("ack-stall"), options with { Direction = TestDirection.Upload },
+                null, null, CancellationToken.None, new InlineProgress<MeasurementProgress>(samples.Add));
+            Require(run.Status == RunStatus.Timeout && run.Mbps == null && samples.IsEmpty && run.Intervals.Count == 0,
+                "Локальные HTTP-байты выданы за подтверждённую отдачу");
+        });
+        await Check("iPerf3 занят: одна повторная попытка после освобождения", async () =>
+        {
+            var tool = await BundledIperf.RequireAsync(CancellationToken.None);
+            var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var serverStop = new CancellationTokenSource();
+            var serving = ExternalProcess.RunAsync(tool.Path, ["-s", "-B", "127.0.0.1", "-p", "55220", "--forceflush"], TimeSpan.FromSeconds(30), serverStop.Token);
+            await Task.Delay(400);
+            var occupying = ExternalProcess.RunAsync(tool.Path, ["-c", "127.0.0.1", "-p", "55220", "-t", "2", "-b", "10M", "--forceflush"],
+                TimeSpan.FromSeconds(10), CancellationToken.None, line => { if (line.Contains("connected to")) ready.TrySetResult(); });
+            try
+            {
+                await ready.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                // The native client's banner is buffered until its first interval.
+                // Let it finish naturally while the retry waits; use a dedicated server.
+                var run = await Coordinator("busy-retry").RunAsync(ServerCatalog.Custom("127.0.0.1", 55220, EngineKind.Iperf3), options, null, null, CancellationToken.None);
+                Require(run.Status == RunStatus.Measured && run.Mbps > 0 && run.ErrorCode == null, JsonSerializer.Serialize(run, Json));
+                string log = RunDiagnostics.Read(run.DebugDirectory);
+                Require(log.Split("iperf3.busy.retry").Length + log.Split("iperf3.control.retry").Length == 3,
+                    "Не было ровно одной ограниченной повторной попытки");
+            }
+            finally
+            {
+                var occupied = await occupying;
+                await File.WriteAllTextAsync(Path.Combine(directory, "occupying-client.txt"), occupied.Stdout + occupied.Stderr);
+                serverStop.Cancel();
+                var served = await serving;
+                await File.WriteAllTextAsync(Path.Combine(directory, "busy-server.txt"), served.Stdout + served.Stderr);
+            }
+        });
         await Check("Сброс control-соединения перебирает резервный порт", async () =>
         {
             var server = ServerCatalog.Custom("127.0.0.1", 55203, EngineKind.Iperf3) with { Ports = [55203, 55201] };
@@ -99,13 +142,14 @@ internal static class SandboxTests
             var run = await Coordinator("bidir").RunAsync(ServerCatalog.Custom("127.0.0.1", 55201, EngineKind.Iperf3), options with { Direction = TestDirection.Bidirectional }, null, null, CancellationToken.None);
             Require(run.Status == RunStatus.Measured && run.UploadMbps > 0 && run.DownloadMbps > 0, JsonSerializer.Serialize(run, Json));
         });
-        await Check("iPerf3 UDP: до отчёта сервера не публикуется локальная скорость отправки", async () =>
+        foreach (var transport in new[] { TransportKind.Tcp, TransportKind.Udp })
+        await Check($"iPerf3 {transport}: до отчёта сервера не публикуется локальная скорость отправки", async () =>
         {
             var samples = new System.Collections.Concurrent.ConcurrentBag<MeasurementProgress>();
             var run = await Coordinator("udp-upload-provenance").RunAsync(ServerCatalog.Custom("127.0.0.1", 55201, EngineKind.Iperf3),
-                options with { Direction = TestDirection.Upload, Transport = TransportKind.Udp }, null, null, CancellationToken.None,
+                options with { Direction = TestDirection.Upload, Transport = transport }, null, null, CancellationToken.None,
                 new InlineProgress<MeasurementProgress>(samples.Add));
-            Require(run.Status == RunStatus.Measured && run.UploadMbps > 0 && samples.IsEmpty && run.Intervals.Count == 0,
+            Require(run.Status == RunStatus.Measured && run.UploadMbps > 0 && samples.IsEmpty && (transport == TransportKind.Tcp || run.Intervals.Count == 0),
                 "В карточку или график переданы локальные UDP-интервалы отправителя");
         });
         await Check("iPerf2 без ACK сохраняет TX, не подтверждает приём", async () =>

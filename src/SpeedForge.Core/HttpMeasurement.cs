@@ -10,16 +10,16 @@ public sealed class HttpMeasurement
 {
     private const int ChunkSize = 65_536;
     private const int MaxRoundBytes = 32 * 1_048_576;
-    private const long MaxSessionBytes = 256L * 1_048_576;
+    private const long MaxSessionBytes = PublicHttpMeasurement.MaxBytes;
 
     public async Task ExecuteAsync(ServerEntry server, TestOptions options, IPAddress ip,
-        RunResult run, string? sessionKey, CancellationToken ct)
+        RunResult run, string? sessionKey, CancellationToken ct, IProgress<MeasurementProgress>? live = null)
     {
         options.Validate();
         run.Diagnostics?.Event("http.endpoint", $"host={server.Host}:{server.Port}; ip={ip}; direction={options.Direction}; SpeedForge v1; session key is never logged");
         if (server.Http is not null)
         {
-            await new PublicHttpMeasurement().ExecuteAsync(server, options, ip, run, ct);
+            await new PublicHttpMeasurement().ExecuteAsync(server, options, ip, run, ct, live);
             return;
         }
         if (options.Direction == TestDirection.Bidirectional || options.Transport == TransportKind.Udp)
@@ -61,7 +61,7 @@ public sealed class HttpMeasurement
                 var pacer = new PayloadPacer(options.BandwidthLimitBitsPerSecond);
                 long budget = options.BandwidthLimitBitsPerSecond == 0 ? MaxSessionBytes : Math.Min(MaxSessionBytes, options.BandwidthLimitBitsPerSecond / 8 * options.DurationSeconds);
                 int roundSize = options.BandwidthLimitBitsPerSecond == 0 ? MaxRoundBytes : (int)Math.Min(MaxRoundBytes, options.BandwidthLimitBitsPerSecond / 8);
-                int rounds = 0;
+                double previous = 0;
                 while (watch.Elapsed.TotalSeconds < options.DurationSeconds && bytes < budget)
                 {
                     int size = (int)Math.Min(roundSize, budget - bytes);
@@ -71,15 +71,25 @@ public sealed class HttpMeasurement
                     else
                         delta = await UploadRound(client, new Uri(baseUri, "upload"), sessionKey, size, pacer, linked.Token);
                     bytes += delta;
-                    rounds++;
                     if (delta == 0) break;
-                    if (rounds >= 40) break;
+                    double elapsed = watch.Elapsed.TotalSeconds;
+                    double interval = elapsed - previous;
+                    if (interval > 0 && double.IsFinite(interval))
+                    {
+                        double mbps = delta * 8.0 / interval / 1_000_000;
+                        if (double.IsFinite(mbps))
+                        {
+                            run.Intervals.Add(new(previous, elapsed, delta, mbps * 1_000_000));
+                            live?.Report(new(options.Direction, elapsed, mbps, bytes));
+                        }
+                    }
+                    previous = elapsed;
                 }
                 watch.Stop();
                 run.MetricOrigin = "HTTP(S): подтверждённый SpeedForge Endpoint v1";
                 run.Limitations.Add("HTTP тест использует ограниченные порции данных и не эквивалентен iPerf");
                 run.Limitations.Add("HTTP использует один поток и ограничивает среднюю скорость полезных данных; буферы TCP допускают краткие всплески");
-                if (bytes >= MaxSessionBytes) run.Limitations.Add("Тест завершён по лимиту трафика 256 МиБ");
+                if (bytes >= MaxSessionBytes) run.Limitations.Add("Достигнут предел полезного трафика 7,5 ГБ; скорость рассчитана по фактическому времени передачи");
                 if (bytes <= 0 || watch.Elapsed.TotalSeconds <= 0)
                 {
                     run.Status = RunStatus.NoData; run.ErrorCode = "ZERO_PAYLOAD"; return;

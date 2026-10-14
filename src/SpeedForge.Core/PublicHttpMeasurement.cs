@@ -181,7 +181,7 @@ public sealed class PublicHttpMeasurement
     {
         if (!response.IsSuccessStatusCode) throw new HttpRequestException($"Сервер вернул HTTP {(int)response.StatusCode}. Проверьте доступность выбранной точки.");
         string? type = response.Content.Headers.ContentType?.MediaType;
-        if (download && (type is null || !type.StartsWith("application/", StringComparison.OrdinalIgnoreCase)
+        if (download && (type is null || !(type.StartsWith("application/", StringComparison.OrdinalIgnoreCase) || type.Equals("binary/octet-stream", StringComparison.OrdinalIgnoreCase))
             || type.Contains("json", StringComparison.OrdinalIgnoreCase) || type.Contains("xml", StringComparison.OrdinalIgnoreCase)))
             throw new InvalidDataException("Вместо тестовых данных сервер вернул страницу или неизвестный тип содержимого");
         if (response.Content.Headers.ContentEncoding.Any(x => !x.Equals("identity", StringComparison.OrdinalIgnoreCase)))
@@ -197,9 +197,12 @@ public sealed class PublicHttpMeasurement
             while (true)
             {
                 await Task.Delay(500, ct);
-                long bytes = Interlocked.Read(ref state.Bytes);
+                long bytes = direction == TestDirection.Upload ? Interlocked.Read(ref state.AcknowledgedBytes) : Interlocked.Read(ref state.Bytes);
                 double end = state.Watch.Elapsed.TotalSeconds;
-                double bps = (bytes - previous) * 8.0 / (end - start);
+                double delta = end - start;
+                if (!double.IsFinite(delta) || delta <= 0 || bytes < previous || bytes == 0) continue;
+                double bps = (bytes - previous) * 8.0 / delta;
+                if (!double.IsFinite(bps) || bps < 0) continue;
                 run.Intervals.Add(new(start, end, bytes - previous, bps));
                 progress?.Report(new(direction, end, bps / 1_000_000, bytes));
                 previous = bytes; start = end;

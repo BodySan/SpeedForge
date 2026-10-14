@@ -12,7 +12,7 @@ public sealed record DirectionObservation(DirectionVerdict Verdict, string Descr
         bool upload = runs.Any(x => Confirmed(x) && x.UploadMbps > 0);
         if (download && upload) return new(DirectionVerdict.Both, "Загрузка и отдача подтверждены");
         if (runs.Any(x => x.Status == RunStatus.Cancelled)) return new(DirectionVerdict.Cancelled, "Проверка остановлена");
-        if (runs.Any(x => x.Options.Iperf2SenderOnly && x.Status == RunStatus.Measured && x.SenderMbps > 0))
+        if (runs.Any(x => x.Options.Iperf2SenderOnly && x.Status == RunStatus.Measured && x.SenderMbps > 0 && !Confirmed(x)))
             return new(DirectionVerdict.Sent, "UDP-отправка завершена");
         if (download) return new(DirectionVerdict.DownloadObserved, "Подтверждена загрузка на ПК; отдача не подтверждена");
         if (upload) return new(DirectionVerdict.UploadObserved, "Подтверждена отдача с ПК; загрузка не подтверждена");

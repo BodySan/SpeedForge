@@ -1,0 +1,221 @@
+{
+  "Version": "1.1.2",
+  "Runtime": "10.0.13",
+  "SDK": "10.0.402",
+  "AutomaticChecks": {
+    "Regression": 125,
+    "Sandbox": 37,
+    "UI": 43,
+    "Failed": 0
+  },
+  "StaticChecks": 25,
+  "ExeSHA256": "e1468f7f4657bd7f8a059fa202dd5b56434afd455aea74875387c91c1dd71704",
+  "PublicChecks": [
+    {
+      "Server": "mirror.corbina.net",
+      "Protocol": "Tcp",
+      "Verdict": "DownloadObserved",
+      "Results": [
+        {
+          "Direction": "Download",
+          "Status": "Measured",
+          "Mbps": 497.77977829924606,
+          "Error": null
+        }
+      ]
+    },
+    {
+      "Server": "spd-rudp.hostkey.ru",
+      "Protocol": "Tcp",
+      "Verdict": "Both",
+      "Results": [
+        {
+          "Direction": "Download",
+          "Status": "Measured",
+          "Mbps": 460.2482065322549,
+          "Error": null
+        },
+        {
+          "Direction": "Upload",
+          "Status": "Measured",
+          "Mbps": 514.7997542993704,
+          "Error": null
+        }
+      ]
+    },
+    {
+      "Server": "spd-rudp.hostkey.ru",
+      "Protocol": "Tcp",
+      "Verdict": "Both",
+      "Results": [
+        {
+          "Direction": "Download",
+          "Status": "Measured",
+          "Mbps": 339.46666021466814,
+          "Error": null
+        },
+        {
+          "Direction": "Upload",
+          "Status": "Measured",
+          "Mbps": 505.23942544610617,
+          "Error": null
+        }
+      ]
+    },
+    {
+      "Server": "speedtest.rastrnet.ru",
+      "Protocol": "Tcp",
+      "Verdict": "DownloadObserved",
+      "Results": [
+        {
+          "Direction": "Download",
+          "Status": "Measured",
+          "Mbps": 211.57728273354164,
+          "Error": null
+        }
+      ]
+    },
+    {
+      "Server": "kndst.st.mtsws.net",
+      "Protocol": "Tcp",
+      "Verdict": "Both",
+      "Results": [
+        {
+          "Direction": "Download",
+          "Status": "Measured",
+          "Mbps": 516.3794342428986,
+          "Error": null
+        },
+        {
+          "Direction": "Upload",
+          "Status": "Measured",
+          "Mbps": 519.0367054427521,
+          "Error": null
+        }
+      ]
+    },
+    {
+      "Server": "mskst.st.mtsws.net",
+      "Protocol": "Tcp",
+      "Verdict": "Unconfirmed",
+      "Results": [
+        {
+          "Direction": "Download",
+          "Status": "ServerBusy",
+          "Mbps": null,
+          "Error": "SERVER_BUSY"
+        },
+        {
+          "Direction": "Upload",
+          "Status": "ServerBusy",
+          "Mbps": null,
+          "Error": "SERVER_BUSY"
+        }
+      ]
+    },
+    {
+      "Server": "voronezh-speedtest.corbina.net",
+      "Protocol": "Tcp",
+      "Verdict": "Both",
+      "Results": [
+        {
+          "Direction": "Download",
+          "Status": "Measured",
+          "Mbps": 204.88320109239763,
+          "Error": null
+        },
+        {
+          "Direction": "Upload",
+          "Status": "Measured",
+          "Mbps": 116.8989213748758,
+          "Error": null
+        }
+      ]
+    },
+    {
+      "Server": "speedtest.selectel.ru",
+      "Protocol": "Tcp",
+      "Verdict": "DownloadObserved",
+      "Results": [
+        {
+          "Direction": "Download",
+          "Status": "Measured",
+          "Mbps": 495.35222360050574,
+          "Error": null
+        }
+      ]
+    },
+    {
+      "Server": "mirror.truenetwork.ru",
+      "Protocol": "Tcp",
+      "Verdict": "DownloadObserved",
+      "Results": [
+        {
+          "Direction": "Download",
+          "Status": "Measured",
+          "Mbps": 288.6753603030403,
+          "Error": null
+        }
+      ]
+    },
+    {
+      "Server": "kndst.st.mtsws.net",
+      "Protocol": "Udp",
+      "Verdict": "Both",
+      "Results": [
+        {
+          "Direction": "Download",
+          "Status": "Measured",
+          "Mbps": 530.4026871555151,
+          "Error": null
+        },
+        {
+          "Direction": "Upload",
+          "Status": "Measured",
+          "Mbps": 526.4317501574822,
+          "Error": null
+        }
+      ]
+    },
+    {
+      "Server": "mskst.st.mtsws.net",
+      "Protocol": "Udp",
+      "Verdict": "Both",
+      "Results": [
+        {
+          "Direction": "Download",
+          "Status": "Measured",
+          "Mbps": 530.4175197385023,
+          "Error": null
+        },
+        {
+          "Direction": "Upload",
+          "Status": "Measured",
+          "Mbps": 541.0918847440471,
+          "Error": null
+        }
+      ]
+    }
+  ],
+  "Beeline": [
+    {
+      "Tariff": 100,
+      "Seconds": 10.6833337,
+      "SenderMbps": 99.991691,
+      "ReceiverMbps": null
+    },
+    {
+      "Tariff": 500,
+      "Seconds": 10.2865351,
+      "SenderMbps": 499.959273,
+      "ReceiverMbps": null
+    },
+    {
+      "Tariff": 1000,
+      "Seconds": 10.3062663,
+      "SenderMbps": 942.396702,
+      "ReceiverMbps": null
+    }
+  ],
+  "Scope": "Регрессии включают разбор сохранённого вывода и реальные локальные iPerf/HTTP процессы. Публично проверены 9 TCP/HTTP записей и 2 UDP записи, кандидаты HTTP и исходящая отправка Билайна. Обновление IP проверено при контролируемой смене ответов сервисов; системный VPN не переключался. Журналы с адресами клиента остаются локальными."
+}

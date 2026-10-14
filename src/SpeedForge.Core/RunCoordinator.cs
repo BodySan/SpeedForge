@@ -96,7 +96,7 @@ public sealed class RunCoordinator(TrustedTools trusted, RunStore store)
                 else if (server.Engine == EngineKind.Http)
                 {
                     stageProgress.Report(new(RunStage.EngineRunning, options.DurationSeconds, Detail: "HTTP: соединение и передача"));
-                    await _http.ExecuteAsync(server, options, ip, run, ephemeralKey, ct);
+                    await _http.ExecuteAsync(server, options, ip, run, ephemeralKey, ct, live);
                 }
                 else
                     await _iperf.ExecuteAsync(server, options, ip, run, ct, progress, live, stageProgress);

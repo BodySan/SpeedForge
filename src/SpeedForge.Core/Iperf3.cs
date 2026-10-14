@@ -21,7 +21,8 @@ public static class Iperf3Parser
                 else if (kind == "interval") intervals.Add(data?.DeepClone());
                 else if (kind == "end")
                 {
-                    if (data is JsonObject obj && obj.ContainsKey("end")) assembled = (JsonObject)obj.DeepClone();
+                    if (data is JsonObject obj && obj.ContainsKey("end"))
+                    { foreach (var property in obj) assembled[property.Key] = property.Value?.DeepClone(); }
                     else assembled["end"] = data?.DeepClone();
                 }
                 else if (kind == "error") assembled["error"] = data?.DeepClone();
@@ -52,7 +53,7 @@ public static class Iperf3Parser
                 run.ErrorText = SafeString(err, 512);
                 return;
             }
-            run.EngineVersion = Try(root, "start", "version") is { } v ? SafeString(v, 100) : null;
+            if (Try(root, "start", "version") is { } v) run.EngineVersion = SafeString(v, 100);
             var end = Try(root, "end");
             if (end is null || end.Value.ValueKind != JsonValueKind.Object)
             {
@@ -267,7 +268,8 @@ public static class Iperf2Parser
             result.Limitations.Add("iperf2 CSV показывает сторону клиента; байты получателя не подтверждены");
         }
         result.Mbps = result.ReceiverMbps;
-        result.UploadMbps = result.ReceiverMbps;
+        if (result.Direction == TestDirection.Download) result.DownloadMbps = result.ReceiverMbps;
+        else result.UploadMbps = result.ReceiverMbps;
         result.Status = result.ReceiverMbps is > 0 ? RunStatus.Measured : RunStatus.InsufficientData;
     }
 }

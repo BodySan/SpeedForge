@@ -91,6 +91,8 @@ public partial class MainWindow
         {
             Configure(ServerCatalog.Custom("127.0.0.1", 55201, EngineKind.Iperf3), false); DirectionCombo.SelectedIndex = 2;
             await Click(); Require(_session.Count == 1 && _session[0].Status == RunStatus.Measured && DownloadValue.Text != "—" && UploadValue.Text != "—", "Bidir не заполнил обе карточки");
+            Require(_chart.Any(x => x.Direction == TestDirection.Upload && x.Mbps > 0)
+                && _chart.Any(x => x.Direction == TestDirection.Download && x.Mbps > 0), "Нет двух подтверждённых направлений на графике");
         });
         await Test("iPerf2 UDP: сначала отдача, затем обратный тест", async () =>
         {
@@ -132,6 +134,9 @@ public partial class MainWindow
             _verificationServer = null; CustomHost.Clear(); CustomUrl.Clear(); CustomEngine.SelectedIndex = 2;
             CustomPort.Text = "5088"; CustomHost.Text = "127.0.0.1"; BothCheck.IsChecked = true;
             await Click(); Require(DirectionObservation.From(_session).Verdict == DirectionVerdict.Both, "Upload собственного Endpoint заблокирован интерфейсом");
+            Require(ProbeButton.IsEnabled && _session.All(x => x.Intervals.Count > 0)
+                && _chart.Any(x => x.Direction == TestDirection.Download) && _chart.Any(x => x.Direction == TestDirection.Upload),
+                "Endpoint не показывает прогресс или кнопка проверки направлений заблокирована");
             CustomHost.Clear();
         });
         await Test("Сравнение iPerf2 с HTTP нормализует протокол второй точки", async () =>
@@ -153,10 +158,10 @@ public partial class MainWindow
                 && _session.Skip(1).All(x => !x.Options.Iperf2SenderOnly && x.Options.BandwidthLimitBitsPerSecond == 0 && x.Status == RunStatus.Measured),
                 "UDP-тариф или режим Билайна перенесён на внешнюю проверку");
         });
-        await Test("Версия 1.1.1 и многоразмерная иконка встроены в exe", () =>
+        await Test("Версия 1.1.2 и многоразмерная иконка встроены в exe", () =>
         {
-            Require(typeof(MainWindow).Assembly.GetName().Version == new Version(1,1,1,0), "Неверная версия assembly");
-            Require(Icon != null && Title.Contains("1.1.1", StringComparison.Ordinal), "Нет иконки или версии в окне");
+            Require(typeof(MainWindow).Assembly.GetName().Version == new Version(1,1,2,0), "Неверная версия assembly");
+            Require(Icon != null && Title.Contains("1.1.2", StringComparison.Ordinal), "Нет иконки или версии в окне");
             var resource = Application.GetResourceStream(new Uri("pack://application:,,,/Assets/SpeedForge.ico"));
             using var stream = resource.Stream;
             var decoder = new System.Windows.Media.Imaging.IconBitmapDecoder(stream, System.Windows.Media.Imaging.BitmapCreateOptions.PreservePixelFormat,

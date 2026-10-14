@@ -113,6 +113,8 @@ public sealed class IperfRunner(TrustedTools trusted)
         var portKey = (server.Host, ip.ToString(), server.Engine, opt.Transport);
         if (_workingPorts.TryGetValue(portKey, out int workingPort) && ports.Contains(workingPort))
             ports = ports.OrderBy(x => x == workingPort ? 0 : 1).ToArray();
+        var baseLimitations = result.Limitations.ToArray();
+        bool retriedBusy = false;
         for (int index = 0; index < ports.Length; index++)
         {
             ct.ThrowIfCancellationRequested();
@@ -120,6 +122,17 @@ public sealed class IperfRunner(TrustedTools trusted)
             var target = server with { Port = ports[index] };
             progress?.Report($"iPerf: {server.Host}:{target.Port}, попытка {index + 1}/{ports.Length}");
             await AttemptAsync(target, opt, ip, result, tool, ct, live, stages);
+            bool controlClosed = result.Status == RunStatus.NetworkError && result.ReceiverBytes is null
+                && (result.ErrorText?.Contains("control", StringComparison.OrdinalIgnoreCase) == true);
+            if (server.Engine == EngineKind.Iperf3 && (result.Status == RunStatus.ServerBusy || controlClosed) && !retriedBusy)
+            {
+                retriedBusy = true;
+                result.Diagnostics?.Event(controlClosed ? "iperf3.control.retry" : "iperf3.busy.retry", $"port={target.Port}; delay={RunTiming.BusyRetryMilliseconds}ms; one retry per run");
+                progress?.Report(controlClosed ? "Сервер прервал подключение. Одна повторная попытка…" : "Сервер занят. Одна повторная попытка…");
+                await Task.Delay(RunTiming.BusyRetryMilliseconds, ct);
+                ResetAttempt(result, baseLimitations);
+                await AttemptAsync(target, opt, ip, result, tool, ct, live, stages);
+            }
             if (result.Status == RunStatus.Measured) _workingPorts[portKey] = target.Port;
             if (result.Status is RunStatus.Measured or RunStatus.Partial or RunStatus.Cancelled
                 || index == ports.Length - 1) return;
@@ -128,12 +141,19 @@ public sealed class IperfRunner(TrustedTools trusted)
                 || error.Contains("busy") || error.Contains("unable to connect") || error.Contains("refused") || error.Contains("timed out");
             if (!retry) return;
             progress?.Report("Порт недоступен или занят. Проверяем следующий порт этого же сервера…");
-            result.Intervals.Clear(); result.ErrorCode = null; result.ErrorText = null;
-            result.Status = RunStatus.InsufficientData;
-            result.Mbps = result.DownloadMbps = result.UploadMbps = result.ReceiverMbps = result.SenderMbps = null;
-            result.ReceiverBytes = result.SenderBytes = null;
-            result.UploadReceiverBytes = result.DownloadReceiverBytes = null;
+            ResetAttempt(result, baseLimitations);
         }
+    }
+
+    private static void ResetAttempt(RunResult result, string[] limitations)
+    {
+        result.Intervals.Clear(); result.ErrorCode = result.ErrorText = result.ProcessExitCode = result.StderrExcerpt = null;
+        result.Status = RunStatus.InsufficientData; result.MetricOrigin = "";
+        result.Mbps = result.DownloadMbps = result.UploadMbps = result.ReceiverMbps = result.SenderMbps = null;
+        result.ReceiverBytes = result.SenderBytes = result.UploadReceiverBytes = result.DownloadReceiverBytes = null;
+        result.ReceiverStreams = null; result.JitterMilliseconds = result.LostPercent = null;
+        result.LostPackets = result.TotalPackets = result.TcpRetransmits = null;
+        result.Limitations.Clear(); result.Limitations.AddRange(limitations);
     }
 
     private static async Task AttemptAsync(ServerEntry server, TestOptions opt, IPAddress ip, RunResult result, ApprovedTool tool, CancellationToken ct, IProgress<MeasurementProgress>? live, IProgress<RunStageProgress>? stages)
@@ -255,7 +275,7 @@ public sealed class IperfRunner(TrustedTools trusted)
             string text = (result.ErrorText + " " + outcome.Stderr).ToLowerInvariant();
             if (text.Contains("busy")) { result.Status = RunStatus.ServerBusy; result.ErrorCode = "SERVER_BUSY"; }
             else if (text.Contains("unable to connect") || text.Contains("refused") || text.Contains("unreachable")
-                || text.Contains("reset by peer") || text.Contains("control socket has closed"))
+                || text.Contains("reset by peer") || text.Contains("control socket has closed") || text.Contains("software caused connection abort"))
             { result.Status = RunStatus.NetworkError; result.ErrorCode = "CONNECTION_FAILED"; }
             else if (text.Contains("timed out")) { result.Status = RunStatus.Timeout; result.ErrorCode = "CONNECTION_TIMEOUT"; }
             if (!string.IsNullOrWhiteSpace(outcome.Stderr)) result.ErrorText = (result.ErrorText + " " + outcome.Stderr.Trim())[..Math.Min(1000, (result.ErrorText + " " + outcome.Stderr.Trim()).Length)];
@@ -273,7 +293,7 @@ public sealed class IperfRunner(TrustedTools trusted)
         if (live == null) return;
         // Upload intervals are local UDP send rates. Only the final remote
         // receiver report can tell us how much crossed the customer's link.
-        if (options.Transport == TransportKind.Udp && options.Direction == TestDirection.Upload) return;
+        if (options.Direction is TestDirection.Upload or TestDirection.Bidirectional) return;
         try
         {
             using var doc = JsonDocument.Parse(line);

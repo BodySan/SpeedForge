@@ -1498,5 +1498,29 @@
     "DownloadError": null,
     "UploadError": null,
     "FileOnly": true
+  },
+  {
+    "ProfileId": "beeline-mirror-https",
+    "Transport": "Tcp",
+    "Checked": "2026-10-14T14:28:47.0840956+03:00",
+    "Verdict": "DownloadObserved",
+    "RepeatVerdict": null,
+    "DownloadStatus": "Measured",
+    "UploadStatus": null,
+    "DownloadError": null,
+    "UploadError": null,
+    "FileOnly": true
+  },
+  {
+    "ProfileId": "truenetwork-https",
+    "Transport": "Tcp",
+    "Checked": "2026-10-14T14:28:55.1128322+03:00",
+    "Verdict": "DownloadObserved",
+    "RepeatVerdict": null,
+    "DownloadStatus": "Measured",
+    "UploadStatus": null,
+    "DownloadError": null,
+    "UploadError": null,
+    "FileOnly": true
   }
 ]

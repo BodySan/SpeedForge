@@ -15,6 +15,7 @@ internal static class SandboxEndpoints
             if (scenario == "html") { ctx.Response.ContentType = "text/html"; await ctx.Response.WriteAsync("<html>Not a test file</html>"); return; }
             if (scenario == "json") { ctx.Response.ContentType = "application/json"; await ctx.Response.WriteAsync("{\"message\":\"not a speed payload\"}"); return; }
             ctx.Response.ContentType = "application/octet-stream";
+            if (scenario == "binary") ctx.Response.ContentType = "binary/octet-stream";
             if (scenario == "compressed") ctx.Response.Headers.ContentEncoding = "gzip";
             if (scenario == "empty") { ctx.Response.ContentLength = 0; return; }
             if (upload)
@@ -29,6 +30,7 @@ internal static class SandboxEndpoints
                     if (total > 32L * 1_048_576) { ctx.Response.StatusCode = 413; return; }
                 }
                 ctx.Response.Headers["X-Sandbox-Received"] = total.ToString();
+                if (scenario == "ack-stall") await Task.Delay(30_000, ctx.RequestAborted);
                 await ctx.Response.WriteAsync("OK", ctx.RequestAborted);
                 return;
             }

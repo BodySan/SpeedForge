@@ -219,7 +219,16 @@ public partial class MainWindow : Window
         OptionsPanel.IsEnabled = !value;
         CatalogEditor.IsEnabled = !value;
         ClearRateButton.IsEnabled = !value && RateBox.Text.Trim() != "0";
-        ProbeButton.IsEnabled = !value && (ServerCombo.SelectedItem is ServerEntry selected && (selected.Engine != EngineKind.Http || selected.Http?.UploadUrl != null));
+        ProbeButton.IsEnabled = false;
+        if (!value)
+        {
+            try
+            {
+                var selected = CurrentServer();
+                ProbeButton.IsEnabled = selected.Engine != EngineKind.Http || selected.Http is null || selected.Http.UploadUrl != null;
+            }
+            catch (Exception ex) when (ex is InvalidDataException or ArgumentException) { }
+        }
         DebugProbeButton.IsEnabled = !value;
         CompareButton.IsEnabled = !value;
         RunProgress.IsIndeterminate = value;
@@ -334,8 +343,8 @@ public partial class MainWindow : Window
         DebugRuns.ItemsSource = _session.ToArray(); DebugRuns.SelectedItem = result;
         if (result.Status is not (RunStatus.Measured or RunStatus.Partial))
         {
-            if (options.Direction == TestDirection.Download) DownloadValue.Text = "—";
-            else UploadValue.Text = "—";
+            if (options.Direction is TestDirection.Download or TestDirection.Bidirectional) DownloadValue.Text = "—";
+            if (options.Direction is TestDirection.Upload or TestDirection.Bidirectional) UploadValue.Text = "—";
         }
         bool unconfirmedIperf2 = server.Engine == EngineKind.Iperf2 && result.ReceiverBytes == null;
         if (unconfirmedIperf2 && options.Direction == TestDirection.Upload) UploadValue.Text = "—";
@@ -344,14 +353,22 @@ public partial class MainWindow : Window
             UploadTxDetail.Text = !options.Iperf2SenderOnly && unconfirmedIperf2 && result.SenderMbps.HasValue ? $"TX локально: {result.SenderMbps:F1} Мбит/с" : "";
             UploadTxDetail.Visibility = UploadTxDetail.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         }
-        if (server.Engine != EngineKind.Http && options.Transport == TransportKind.Udp
-            && options.Direction == TestDirection.Upload && result.Status is RunStatus.Measured or RunStatus.Partial
+        if (server.Engine != EngineKind.Http && options.Direction == TestDirection.Upload && result.Status is RunStatus.Measured or RunStatus.Partial
             && result.ReceiverBytes > 0 && result.ReceiverMbps is > 0)
         {
             _chart.Add(new(options.Direction, _chartOffset + options.DurationSeconds, result.ReceiverMbps.Value, result.ReceiverBytes.Value));
             RenderChart();
         }
-        if (server.Engine != EngineKind.Http && !unconfirmedIperf2 && !_chart.Any(x => x.Seconds > _chartOffset))
+        if (options.Direction == TestDirection.Bidirectional && result.Status is RunStatus.Measured or RunStatus.Partial)
+        {
+            if (result.DownloadMbps is > 0 && result.DownloadReceiverBytes > 0)
+                _chart.Add(new(TestDirection.Download, _chartOffset + options.DurationSeconds, result.DownloadMbps.Value, result.DownloadReceiverBytes.Value));
+            if (result.UploadMbps is > 0 && result.UploadReceiverBytes > 0)
+                _chart.Add(new(TestDirection.Upload, _chartOffset + options.DurationSeconds, result.UploadMbps.Value, result.UploadReceiverBytes.Value));
+            RenderChart();
+        }
+        if (server.Engine != EngineKind.Http && options.Direction == TestDirection.Download && !unconfirmedIperf2
+            && !_chart.Any(x => x.Direction == options.Direction && x.Seconds > _chartOffset))
         {
             foreach (var interval in result.Intervals)
                 _chart.Add(new(options.Direction, _chartOffset + interval.EndSeconds, interval.BitsPerSecond / 1_000_000, interval.Bytes));

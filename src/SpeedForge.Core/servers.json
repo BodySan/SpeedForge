@@ -1809,9 +1809,9 @@
     "permittedTransports": [
       "Tcp"
     ],
-    "notes": "Только загрузка: оператор публикует тестовые файлы. Максимум 512 МиБ.",
+    "notes": "Только загрузка. Проверка повторяет запросы в пределах времени теста; файл не задаёт потолок скорости.",
     "http": {
-      "downloadUrl": "https://speedtest.selectel.ru/100MB",
+      "downloadUrl": "https://speedtest.selectel.ru/1GB",
       "uploadUrl": null,
       "protocol": "File",
       "uploadMethod": "POST"
@@ -1835,7 +1835,7 @@
     "permittedTransports": [
       "Tcp"
     ],
-    "notes": "Загрузка и отдача через HTTP. Максимум 512 МиБ на направление.",
+    "notes": "Загрузка и отдача через HTTP. Предел полезного трафика — 7,5 ГБ на направление.",
     "http": {
       "downloadUrl": "https://spd-rudp.hostkey.ru/garbage?ckSize=64",
       "uploadUrl": "https://spd-rudp.hostkey.ru/empty",
@@ -1861,7 +1861,7 @@
     "permittedTransports": [
       "Tcp"
     ],
-    "notes": "Загрузка и отдача через HTTP. Максимум 512 МиБ на направление.",
+    "notes": "Загрузка и отдача через HTTP. Предел полезного трафика — 7,5 ГБ на направление.",
     "http": {
       "downloadUrl": "http://spd-rudp.hostkey.ru/garbage?ckSize=64",
       "uploadUrl": "http://spd-rudp.hostkey.ru/empty",
@@ -1886,7 +1886,7 @@
     "permittedTransports": [
       "Tcp"
     ],
-    "notes": "Только загрузка: оператор публикует тестовые файлы. Максимум 512 МиБ.",
+    "notes": "Только загрузка: оператор публикует тестовые файлы. Предел полезного трафика — 7,5 ГБ.",
     "http": {
       "downloadUrl": "https://speedtest.rastrnet.ru/100MB.zip",
       "uploadUrl": null,
@@ -1966,5 +1966,55 @@
         "bitsPerSecondPerStream": 1000000000
       }
     ]
+  },
+  {
+    "id": "beeline-mirror-https",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Билайн",
+    "city": "Россия",
+    "host": "mirror.corbina.net",
+    "port": 443,
+    "engine": "Http",
+    "source": "https://mirror.corbina.net/",
+    "provenance": "Опубликованный тестовый файл; загрузка проверена 14.10.2026",
+    "permittedDirections": [
+      "Download"
+    ],
+    "permittedTransports": [
+      "Tcp"
+    ],
+    "notes": "Только загрузка. Доступность и скорость зависят от маршрута до зеркала.",
+    "http": {
+      "downloadUrl": "https://mirror.corbina.net/100Mb",
+      "uploadUrl": null,
+      "protocol": "File",
+      "uploadMethod": "POST"
+    }
+  },
+  {
+    "id": "truenetwork-https",
+    "region": "Россия",
+    "country": "Россия",
+    "group": "Truenetwork",
+    "city": "Россия",
+    "host": "mirror.truenetwork.ru",
+    "port": 443,
+    "engine": "Http",
+    "source": "https://mirror.truenetwork.ru/",
+    "provenance": "Опубликованный тестовый файл; загрузка проверена 14.10.2026",
+    "permittedDirections": [
+      "Download"
+    ],
+    "permittedTransports": [
+      "Tcp"
+    ],
+    "notes": "Только загрузка. Доступность и скорость зависят от маршрута до зеркала.",
+    "http": {
+      "downloadUrl": "https://mirror.truenetwork.ru/speedtest/1GiB",
+      "uploadUrl": null,
+      "protocol": "File",
+      "uploadMethod": "POST"
+    }
   }
 ]

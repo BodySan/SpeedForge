@@ -22,14 +22,16 @@ public static class RunTiming
     public const int UdpReportSeconds = 5;
     public const int Iperf3ReportSeconds = 10;
     public const int TcpConnectMilliseconds = 2500;
+    public const int BusyRetryMilliseconds = 1200;
     public static int ReportSeconds(EngineKind engine) => engine == EngineKind.Iperf2 ? UdpReportSeconds : Iperf3ReportSeconds;
     public static int ProcessSeconds(EngineKind engine, TestOptions options) => StartupSeconds + options.DurationSeconds + ReportSeconds(engine);
     public static int RunSeconds(ServerEntry server, TestOptions options)
     {
         int latency = options.MeasureLatency ? (options.MeasureLatencyBefore ? 3 : 0) + (options.MeasureLatencyAfter ? 3 : 0) : 0;
         int ports = Math.Clamp(server.Ports.Distinct().Count(), 1, 16);
-        return Math.Min(120, 2 + latency + (server.Engine == EngineKind.Http ? StartupSeconds + options.DurationSeconds + 5
-            : VersionSeconds + ports * StartupSeconds + options.DurationSeconds + ReportSeconds(server.Engine)));
+        return Math.Min(120, 2 + latency + (server.Engine == EngineKind.Http ? StartupSeconds + options.DurationSeconds + (server.Http == null ? 15 : 0) + 5
+            : VersionSeconds + ports * StartupSeconds + options.DurationSeconds + ReportSeconds(server.Engine)
+                + (server.Engine == EngineKind.Iperf3 ? StartupSeconds + 2 : 0)));
     }
     public static int CompatibilitySeconds(TestOptions options) => Math.Min(120, 2 +
         (options.MeasureLatency ? (options.MeasureLatencyBefore ? 3 : 0) + (options.MeasureLatencyAfter ? 3 : 0) : 0)
